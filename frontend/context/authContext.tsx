@@ -4,6 +4,7 @@ import { jwtDecode } from "jwt-decode";
 import { router } from "expo-router";
 import {
   setUserToken,
+  setUserInfo,
   getUserToken,
   getUserInfo,
   removeUserToken,
@@ -20,7 +21,7 @@ export const AuthContext = createContext<AuthContextType>({
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [userToken, setUserTokenState] = useState<string | null>(null);
-  const [username, setSetUsername] = useState<string | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const isTokenExpired = (token: string) => {
@@ -44,7 +45,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         router.replace("/(auth)/login");
       } else {
         setUserTokenState(token);
-        setSetUsername(userInfo ? JSON.parse(userInfo).username : null);
+        setUsername(userInfo ? JSON.parse(userInfo).username : null);
       }
 
       setLoading(false);
@@ -53,15 +54,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     loadToken();
   }, []);
 
-  const login = async (token: string) => {
-    await setUserToken(token); // persist
-    setUserTokenState(token); // memory
+  const login = async (
+    token: string,
+    user: { id: string; username: string }
+  ) => {
+    setUserInfo(user);
+    setUsername(user.username);
+    setUserToken(token);
+    setUserTokenState(token);
+    router.replace("/(tabs)");
   };
 
   const logout = async () => {
     await removeUserToken();
     await removeUserInfo();
     setUserTokenState(null);
+    setUsername(null);
     router.replace("/(auth)/login");
   };
 
