@@ -15,11 +15,9 @@ export default function Index() {
     );
   }
 
-  // Not logged in → Auth flow
   if (!userToken) {
     return <Redirect href="/(auth)/login" />;
   }
 
-  // Logged in → App
-  return <Redirect href="/(tabs)" />;
+  return <Redirect href="/(app)/(tabs)" />;
 }
