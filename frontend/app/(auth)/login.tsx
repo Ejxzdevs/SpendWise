@@ -13,7 +13,6 @@ import {
 import { router } from "expo-router";
 import { login as loginService } from "@/services/authServices";
 import { AuthContext } from "@/context/authContext";
-import { setUserInfo } from "@/utils/authStorage";
 
 export default function Login() {
   const { login } = useContext(AuthContext);
@@ -41,10 +40,7 @@ export default function Login() {
         username: trimmedUsername,
         password: trimmedPassword,
       });
-
-      await login(response.token);
-      await setUserInfo(response.user);
-      router.replace("/(tabs)");
+      await login(response.token, response.user);
     } catch (error: any) {
       setAuthError(error.message || "Login failed");
     } finally {
