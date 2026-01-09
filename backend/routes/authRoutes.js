@@ -3,7 +3,8 @@ import authController from "../controllers/authController.js"; // ✅ default im
 
 const router = Router();
 
-// Use the method from the controller instance
+// List of auth routes
 router.post("/login", authController.userLogin);
+router.post("/register", authController.userRegister);
 
 export default router;
