@@ -40,6 +40,11 @@ export default function Login() {
         username: trimmedUsername,
         password: trimmedPassword,
       });
+
+      if (!response.success) {
+        throw new Error(response.message);
+      }
+
       await login(response.token, response.user);
     } catch (error: any) {
       setAuthError(error.message || "Login failed");
@@ -55,7 +60,8 @@ export default function Login() {
           source={require("@/assets/images/spendWise.svg")}
           style={styles.logo}
         />
-        <Text style={styles.title}>SpendWise</Text>
+        <Text style={styles.title}>Welcome Back</Text>
+        <Text style={styles.subtitle}>Log in to your SpendWise account</Text>
       </View>
 
       <View style={styles.form}>
@@ -119,9 +125,17 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   title: {
-    fontSize: 36,
+    fontSize: 32,
     fontWeight: "bold",
-    color: "#1f2937",
+    marginBottom: 8,
+    textAlign: "center",
+    color: "#111827",
+  },
+  subtitle: {
+    fontSize: 16,
+    color: "#6b7280",
+    marginBottom: 24,
+    textAlign: "center",
   },
   form: {
     width: "100%",
