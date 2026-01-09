@@ -30,7 +30,7 @@ export default function Home() {
       <Text style={styles.text}>🏠 Home Page</Text>
       <Text>welcome back {username}</Text>
       <TouchableOpacity
-        style={[styles.button, loading && { backgroundColor: "#509893" }]}
+        style={[styles.button, loading && { backgroundColor: "#9ca3af" }]}
         onPress={handleLogout}
         disabled={loading}
       >
