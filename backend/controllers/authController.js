@@ -27,15 +27,11 @@ class AuthController {
       }
 
       // Create new user
-      const newUser = await AuthModel.createUser({ username, password });
+      await AuthModel.createUser({ username, password });
 
       res.status(201).json({
         success: true,
         message: "User registered successfully. Please login.",
-        user: {
-          id: newUser.user_id,
-          username: newUser.username,
-        },
       });
     } catch (err) {
       console.error(err);
