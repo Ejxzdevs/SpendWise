@@ -5,46 +5,55 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
 } from "react-native";
-import { Link, router } from "expo-router";
+import { Link } from "expo-router";
+import { register as registerService } from "@/services/authServices";
 
 export default function Register() {
   // State to handle inputs
-  const [email, setEmail] = useState("");
+  const [username, setusername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
-  const handleRegister = () => {
-    // Basic validation
-    if (!email || !password || !confirmPassword) {
-      Alert.alert("Error", "Please fill all fields");
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const handleRegister = async () => {
+    // validations
+    if (!username || !password || !confirmPassword) {
+      setError("All fields are required");
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert("Error", "Passwords do not match");
+      setError("Passwords do not match");
       return;
     }
 
-    // You can add your registration logic here
-    console.log("Email:", email);
-    console.log("Password:", password);
-
-    // Navigate to login after successful registration
-    router.replace("/(auth)/login");
+    // Call register service
+    try {
+      await registerService({
+        username: username.trim(),
+        password: password.trim(),
+      });
+      setSuccess(true);
+      setConfirmPassword("");
+      setusername("");
+      setPassword("");
+      setError(null);
+    } catch (error: any) {
+      setError(error.message || "Registration failed");
+      return;
+    }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Create Account</Text>
-      <Text style={styles.subtitle}>Sign up to get started</Text>
+      <Text style={styles.title}>Create an Account</Text>
+      <Text style={styles.subtitle}>Get started with SpendWise</Text>
 
       <TextInput
-        placeholder="Email"
+        placeholder="username"
         style={styles.input}
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
+        value={username}
+        onChangeText={setusername}
         autoCapitalize="none"
       />
       <TextInput
@@ -62,6 +71,13 @@ export default function Register() {
         onChangeText={setConfirmPassword}
       />
 
+      {error && <Text style={styles.errorText}>{error}</Text>}
+      {success && (
+        <Text style={{ color: "green", marginBottom: 8 }}>
+          Registration successful! Please log in.
+        </Text>
+      )}
+
       <TouchableOpacity style={styles.button} onPress={handleRegister}>
         <Text style={styles.buttonText}>Register</Text>
       </TouchableOpacity>
@@ -78,7 +94,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     padding: 24,
-    backgroundColor: "#f3f4f6", // modern light background
+    backgroundColor: "#f3f4f6",
   },
   title: {
     fontSize: 32,
@@ -118,5 +134,10 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: "#4f46e5",
     fontWeight: "500",
+  },
+  errorText: {
+    color: "red",
+    fontSize: 14,
+    marginBottom: 8,
   },
 });
