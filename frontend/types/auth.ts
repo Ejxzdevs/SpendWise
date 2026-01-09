@@ -4,11 +4,11 @@
 // API TYPES
 // --------------------
 
-export interface LoginPayload {
+export interface UserPayload {
   username: string;
   password: string;
 }
-
+// Response type for login
 export type LoginResponse =
   | {
       success: true;
@@ -17,6 +17,17 @@ export type LoginResponse =
         id: string;
         username: string;
       };
+    }
+  | {
+      success: false;
+      message: string;
+    };
+
+// Response type for registration
+export type RegisterResponse =
+  | {
+      success: true;
+      message: string;
     }
   | {
       success: false;
