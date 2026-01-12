@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { router } from "expo-router";
-import { login as loginService } from "@/services/authServices";
+import { login as loginService } from "@/services/authService";
 import { AuthContext } from "@/context/authContext";
 
 export default function Login() {

@@ -7,7 +7,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { Link } from "expo-router";
-import { register as registerService } from "@/services/authServices";
+import { register as registerService } from "@/services/authService";
 
 export default function Register() {
   // State to handle inputs
