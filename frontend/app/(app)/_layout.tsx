@@ -7,18 +7,30 @@ function CustomDrawerContent(props: any) {
 
   return (
     <DrawerContentScrollView {...props}>
-      <DrawerItem label="Home" onPress={() => router.push("/")} />
+      <DrawerItem label="Dashboard" onPress={() => router.push("/")} />
       <DrawerItem label="Explore" onPress={() => router.push("/explore")} />
+      <DrawerItem label="Expenses" onPress={() => router.push("/expense")} />
     </DrawerContentScrollView>
   );
 }
 
 export default function AppLayout() {
   return (
-    <Drawer drawerContent={(props) => <CustomDrawerContent {...props} />}>
+    <Drawer
+      drawerContent={(props) => <CustomDrawerContent {...props} />}
+      screenOptions={{
+        headerStyle: { backgroundColor: "#509893" },
+        drawerActiveTintColor: "#5A0038",
+        drawerInactiveTintColor: "#5A0038",
+      }}
+    >
       <Drawer.Screen
         name="(tabs)"
-        options={{ drawerLabel: "Home", title: "App" }}
+        options={{
+          drawerLabel: "Home",
+          title: "SpendWise",
+          headerTintColor: "#ffffff",
+        }}
       />
     </Drawer>
   );
