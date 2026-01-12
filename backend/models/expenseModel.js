@@ -2,7 +2,7 @@
 import { query as _query } from "../config/db.js";
 
 class ExpensesModel {
-  // Create new user (registration)
+  // Create new expense
   static async createExpense({ category, amount, description }) {
     const sql = `
       INSERT INTO expenses (category, amount, description)
