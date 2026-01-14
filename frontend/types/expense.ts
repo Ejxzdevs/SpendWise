@@ -5,12 +5,28 @@ export interface BaseExpense {
   description?: string;
 }
 
-// Payloads
+// insert Payloads
 export interface ExpensePayload extends BaseExpense {}
 
-// Response
-export interface ExpenseResponse extends BaseExpense {
+// insert Response
+export type ExpenseResponse =
+  | {
+      success: true;
+      message: string;
+    }
+  | {
+      success: false;
+      message: string;
+    };
+
+// Expense items type
+export interface ExpenseItem extends BaseExpense {
   id: string;
-  createdAt: string;
-  updatedAt?: string;
+  created_at: string;
+}
+
+// API Expense fetch response type
+export interface FetchExpensesResponse {
+  success: boolean;
+  data: ExpenseItem[];
 }
