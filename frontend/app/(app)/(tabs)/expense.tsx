@@ -15,6 +15,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { saveExpense, fetchExpenses } from "@/services/expenseServices";
 import { ExpenseItem } from "@/types/expense";
+import { Picker } from "@react-native-picker/picker";
 import dayjs from "dayjs";
 
 export default function ExpenseTabScreen() {
@@ -127,12 +128,19 @@ export default function ExpenseTabScreen() {
               <Text style={styles.modalTitle}>Add New Expense</Text>
 
               <Text style={styles.label}>Category</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter category"
-                value={category}
-                onChangeText={setCategory}
-              />
+              <Picker
+                selectedValue={category}
+                onValueChange={(itemValue) => setCategory(itemValue)}
+                style={styles.picker}
+              >
+                <Picker.Item label="Select category" value="" />
+                <Picker.Item label="Food" value="Food" />
+                <Picker.Item label="Transport" value="Transport" />
+                <Picker.Item label="Rent" value="Rent" />
+                <Picker.Item label="Utilities" value="Utilities" />
+                <Picker.Item label="Entertainment" value="Entertainment" />
+                <Picker.Item label="Others" value="Others" />
+              </Picker>
 
               <Text style={styles.label}>Amount</Text>
               <TextInput
@@ -230,6 +238,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     elevation: 8,
+    boxShadow: "0px 4px 6px rgba(0,0,0,0.6)",
   },
 
   modalOverlay: {
@@ -261,6 +270,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginTop: 5,
   },
+  picker: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    marginTop: 5,
+    color: "#000",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
   error: {
     color: "red",
     marginTop: 10,
@@ -272,7 +290,7 @@ const styles = StyleSheet.create({
   submitBtn: {
     flex: 1,
     backgroundColor: "#0000FF",
-    paddingVertical: 14,
+    paddingVertical: 10,
     borderRadius: 8,
     alignItems: "center",
     marginHorizontal: 5,
