@@ -17,6 +17,20 @@ class ExpensesModel {
       throw new Error("Error creating user");
     }
   }
+
+  // Get all expenses
+  static async getAllExpenses() {
+    const sql = `
+      SELECT * FROM expenses;
+    `;
+    try {
+      const result = await _query(sql);
+      return result.rows;
+    } catch (error) {
+      console.error(error);
+      throw new Error("Error fetching expenses");
+    }
+  }
 }
 
 export default ExpensesModel;

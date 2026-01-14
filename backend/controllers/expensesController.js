@@ -1,33 +1,26 @@
-// controllers/expensesController.js
-import ExpensesModel from "../models/expenseModel.js";
+import ExpenseServices from "../services/expenseServices.js";
 
 class ExpensesController {
-  // CREATE EXPENSE
   createExpense = async (req, res) => {
     const { category, amount, description } = req.body;
-
-    // Validate input
-    if (!category || !amount) {
-      return res.status(400).json({
-        success: false,
-        message: "Category and amount are required fields",
-      });
-    }
+    if (!category || !amount)
+      return res
+        .status(400)
+        .json({ success: false, message: "Required fields missing" });
 
     try {
-      const newExpense = await ExpensesModel.createExpense({
-        category,
-        amount,
-        description,
-      });
+      await ExpenseServices.createExpense({ category, amount, description });
+      res.status(201).json({ success: true, message: "Expense created" });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  };
 
-      return res.status(201).json({
-        success: true,
-        message: "Expense created successfully",
-        data: newExpense,
-      });
+  getAllExpenses = async (req, res) => {
+    try {
+      const expenses = await ExpenseServices.getAllExpenses();
+      res.status(200).json({ success: true, data: expenses });
     } catch (err) {
-      console.error(err);
       res.status(500).json({ success: false, message: err.message });
     }
   };
