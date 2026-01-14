@@ -1,4 +1,4 @@
-import apiClient from "./apiClient";
+import apiClient from "../utils/apiClient";
 import { UserPayload, LoginResponse, RegisterResponse } from "@/types/auth";
 
 // user login service
