@@ -20,3 +20,15 @@ export const saveIncome = async (
     }
   }
 };
+export const fetchIncomes = async (): Promise<FetchIncomesResponse> => {
+  try {
+    const response = await apiClient.get("/income/all");
+    return response.data;
+  } catch (error: any) {
+    if (error.response && error.response.data) {
+      throw new Error(error.response.data.message);
+    } else {
+      throw new Error("Network or unknown error");
+    }
+  }
+};
