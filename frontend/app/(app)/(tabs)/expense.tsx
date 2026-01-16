@@ -63,6 +63,7 @@ export default function ExpenseTabScreen() {
         amount: parseFloat(amount),
         description,
       });
+      Alert.alert("Success", "Expense saved successfully");
       loadExpenses();
       closeModal();
     } catch (error: any) {
