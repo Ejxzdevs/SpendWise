@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { View, Text, StyleSheet, Platform, Alert } from "react-native";
 // 1. Ensure these imports are exactly like this
 import { Drawer } from "expo-router/drawer";
@@ -6,10 +6,12 @@ import { DrawerContentScrollView, DrawerItem } from "@react-navigation/drawer";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { getUserInfo } from "@/utils/authStorage";
+import { AuthContext } from "@/context/authContext";
 
 function CustomDrawerContent(props: any) {
   const router = useRouter();
   const [user, setUser] = useState<{ username: string }>({ username: "Guest" });
+  const { logout } = useContext(AuthContext);
 
   useEffect(() => {
     const fetchUserInfo = async () => {
@@ -26,16 +28,7 @@ function CustomDrawerContent(props: any) {
   }, []);
 
   const handleLogout = () => {
-    Alert.alert("Logout", "Are you sure you want to log out?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Logout",
-        style: "destructive",
-        onPress: async () => {
-          router.replace("/login");
-        },
-      },
-    ]);
+    logout();
   };
 
   return (
