@@ -114,7 +114,7 @@ export default function ExpenseTabScreen() {
 
       <FlatList
         data={expenses}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.expense_id}
         renderItem={renderExpense}
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
