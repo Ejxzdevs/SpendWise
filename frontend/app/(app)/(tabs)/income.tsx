@@ -16,19 +16,20 @@ import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import { saveIncome, fetchIncomes } from "@/services/incomeService";
 import { IncomeItem } from "@/types/income";
+import { expenseCategory, expenseCategoryIcons } from "@/types/category";
 
 export default function IncomeTabScreen() {
   const [modalVisible, setModalVisible] = useState(false);
-  const [source, setsource] = useState("");
+  const [source, setSource] = useState<expenseCategory | "">("");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [incomes, setIncomes] = useState<IncomeItem[]>([]);
 
+  // Fetch incomes on mount
   useEffect(() => {
     const loadIncomes = async () => {
       try {
         const response = await fetchIncomes();
-        console.log("Fetched incomes:", response.data);
         setIncomes(response.data);
       } catch (error) {
         console.error("Error fetching incomes:", error);
@@ -37,22 +38,29 @@ export default function IncomeTabScreen() {
     loadIncomes();
   }, []);
 
+  // Calculate total income
   const totalIncome = useMemo(() => {
     return incomes.reduce((sum, income) => sum + Number(income.amount), 0);
   }, [incomes]);
 
+  // Save new income
   const handleSaveIncome = async () => {
+    if (!source || !amount) {
+      Alert.alert("Error", "Please select a source and enter amount.");
+      return;
+    }
+
     const payload = {
       source,
       amount: parseFloat(amount),
       description,
     };
+
     try {
       await saveIncome(payload);
-      // Refresh income list after saving
       const response = await fetchIncomes();
-      Alert.alert("Success", "Income saved successfully");
       setIncomes(response.data);
+      Alert.alert("Success", "Income saved successfully");
       closeModal();
     } catch (error) {
       console.error("Error saving income:", error);
@@ -60,26 +68,34 @@ export default function IncomeTabScreen() {
   };
 
   const closeModal = () => {
-    setsource("");
+    setSource("");
     setAmount("");
     setDescription("");
     setModalVisible(false);
   };
 
-  const renderIncomeItem = ({ item }: any) => (
+  // Render income list item
+  const renderIncomeItem = ({ item }: { item: IncomeItem }) => (
     <View style={styles.card}>
       <View style={styles.cardIconContainer}>
-        <Ionicons name="trending-up" size={24} color="#2563EB" />
+        {item.source &&
+          expenseCategoryIcons[item.source as expenseCategory] && (
+            <Ionicons
+              name={expenseCategoryIcons[item.source as expenseCategory]}
+              size={24}
+              color="#2563EB"
+            />
+          )}
       </View>
-      <div style={styles.cardContent}>
+      <View style={styles.cardContent}>
         <View style={styles.cardRow}>
           <Text style={styles.sourceText}>{item.source}</Text>
           <Text style={styles.amountText}>
-            +₱{item.amount.toLocaleString()}
+            +₱{Number(item.amount).toLocaleString()}
           </Text>
         </View>
         <Text style={styles.descriptionText}>{item.description}</Text>
-      </div>
+      </View>
     </View>
   );
 
@@ -88,9 +104,10 @@ export default function IncomeTabScreen() {
       {/* Header */}
       <View style={styles.headerCard}>
         <Text style={styles.headerLabel}>Total Revenue</Text>
-        <Text style={styles.headerAmount}>{totalIncome.toLocaleString()}</Text>
+        <Text style={styles.headerAmount}>₱{totalIncome.toLocaleString()}</Text>
       </View>
 
+      {/* Income List */}
       <FlatList
         data={incomes}
         renderItem={renderIncomeItem}
@@ -101,12 +118,12 @@ export default function IncomeTabScreen() {
         }
       />
 
-      {/* FAB to open Modal */}
+      {/* FAB */}
       <Pressable style={styles.fab} onPress={() => setModalVisible(true)}>
         <Ionicons name="add" size={30} color="#fff" />
       </Pressable>
 
-      {/* --- ADD INCOME MODAL --- */}
+      {/* Add Income Modal */}
       <Modal
         animationType="slide"
         transparent
@@ -122,22 +139,34 @@ export default function IncomeTabScreen() {
             <ScrollView showsVerticalScrollIndicator={false}>
               <Text style={styles.modalTitle}>Add Income</Text>
 
-              <Text style={styles.label}>Source source</Text>
+              {/* Dynamic Icon */}
+              {source ? (
+                <Ionicons
+                  name={expenseCategoryIcons[source]}
+                  size={48}
+                  color="#2563EB"
+                  style={{ alignSelf: "center", marginBottom: 12 }}
+                />
+              ) : null}
+
+              {/* Source Picker */}
+              <Text style={styles.label}>Source</Text>
               <View style={styles.pickerContainer}>
                 <Picker
                   selectedValue={source}
-                  onValueChange={(val) => setsource(val)}
+                  onValueChange={(val) => setSource(val)}
                   style={styles.picker}
                 >
                   <Picker.Item label="Select Source" value="" color="#94A3B8" />
-                  <Picker.Item label="💼 Salary" value="Salary" />
-                  <Picker.Item label="💻 Freelance" value="Freelance" />
-                  <Picker.Item label="📈 Investment" value="Investment" />
-                  <Picker.Item label="🎁 Gift" value="Gift" />
-                  <Picker.Item label="💰 Other" value="Other" />
+                  <Picker.Item label="Salary" value="Salary" />
+                  <Picker.Item label="Freelance" value="Freelance" />
+                  <Picker.Item label="Investment" value="Investment" />
+                  <Picker.Item label="Gift" value="Gift" />
+                  <Picker.Item label="Other" value="Other" />
                 </Picker>
               </View>
 
+              {/* Amount */}
               <Text style={styles.label}>Amount</Text>
               <TextInput
                 style={styles.input}
@@ -148,6 +177,7 @@ export default function IncomeTabScreen() {
                 keyboardType="decimal-pad"
               />
 
+              {/* Description */}
               <Text style={styles.label}>Description</Text>
               <TextInput
                 style={[styles.input, styles.textArea]}
@@ -158,7 +188,8 @@ export default function IncomeTabScreen() {
                 multiline
               />
 
-              <div style={styles.buttonRow}>
+              {/* Buttons */}
+              <View style={styles.buttonRow}>
                 <Pressable
                   style={[styles.btn, styles.btnSecondary]}
                   onPress={closeModal}
@@ -171,7 +202,7 @@ export default function IncomeTabScreen() {
                 >
                   <Text style={styles.btnTextPrimary}>Save Income</Text>
                 </Pressable>
-              </div>
+              </View>
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
@@ -180,6 +211,7 @@ export default function IncomeTabScreen() {
   );
 }
 
+// ------------------- Styles -------------------
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F8FAFC" },
   headerCard: {
@@ -227,10 +259,7 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   cardContent: { flex: 1 },
-  cardRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
+  cardRow: { flexDirection: "row", justifyContent: "space-between" },
   sourceText: { fontSize: 16, fontWeight: "600", color: "#1E293B" },
   amountText: { fontSize: 16, fontWeight: "700", color: "#059669" },
   descriptionText: { fontSize: 14, color: "#64748B", marginTop: 2 },
@@ -246,7 +275,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     elevation: 5,
   },
-  // Modal Styles (Matches Expense Screen)
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(15, 23, 42, 0.5)",
@@ -296,7 +324,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   picker: { height: 50, width: "100%" },
-  buttonRow: { display: "flex", flexDirection: "row", marginTop: 32, gap: 12 },
+  buttonRow: { flexDirection: "row", marginTop: 32, gap: 12 },
   btn: { flex: 1, paddingVertical: 16, borderRadius: 12, alignItems: "center" },
   btnPrimary: { backgroundColor: "#2563EB" },
   btnSecondary: { backgroundColor: "#F1F5F9" },
