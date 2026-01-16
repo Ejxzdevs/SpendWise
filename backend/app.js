@@ -1,6 +1,7 @@
 import express, { json, urlencoded } from "express";
 import authRoutes from "./routes/authRoutes.js";
 import expenseRoutes from "./routes/expensesRoutes.js";
+import incomeRoutes from "./routes/incomeRoutes.js";
 const app = express();
 import cors from "cors";
 
@@ -11,6 +12,7 @@ app.use(urlencoded({ extended: true }));
 // ROUTES
 app.use("/auth", authRoutes);
 app.use("/expense", expenseRoutes);
+app.use("/income", incomeRoutes);
 
 app.listen(8080, () => {
   console.log("Server is running on http://localhost:8080/");
