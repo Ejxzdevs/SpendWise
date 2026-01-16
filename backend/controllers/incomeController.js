@@ -15,6 +15,15 @@ class IncomeController {
       res.status(500).json({ success: false, message: error.message });
     }
   };
+
+  getAllIncomes = async (req, res) => {
+    try {
+      const incomes = await IncomeServices.getAllIncomes();
+      res.status(200).json({ success: true, data: incomes });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  };
 }
 
 export default new IncomeController();
