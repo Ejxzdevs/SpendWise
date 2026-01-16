@@ -21,7 +21,7 @@ export type ExpenseResponse =
 
 // Expense items type
 export interface ExpenseItem extends BaseExpense {
-  id: string;
+  expense_id: string;
   created_at: string;
 }
 
