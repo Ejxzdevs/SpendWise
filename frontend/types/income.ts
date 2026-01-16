@@ -21,7 +21,7 @@ export type IncomeResponse =
 
 // Income items type
 export interface IncomeItem extends BaseIncome {
-  id: string;
+  source_id: string;
   created_at: string;
 }
 
