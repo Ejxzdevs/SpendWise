@@ -18,6 +18,7 @@ import { saveExpense, fetchExpenses } from "@/services/expenseServices";
 import { ExpenseItem } from "@/types/expense";
 import { Picker } from "@react-native-picker/picker";
 import dayjs from "dayjs";
+import { expenseCategoryIcons } from "@/types/category";
 
 export default function ExpenseTabScreen() {
   const [modalVisible, setModalVisible] = useState(false);
@@ -27,7 +28,7 @@ export default function ExpenseTabScreen() {
   const [error, setError] = useState<string | null>(null);
   const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
 
-  // Fetch expenses
+  // Fetch expenses on mount
   const loadExpenses = async () => {
     try {
       const response = await fetchExpenses();
@@ -41,13 +42,13 @@ export default function ExpenseTabScreen() {
     loadExpenses();
   }, []);
 
-  // Calculate total for the summary card
+  // Calculate total expenses
   const totalAmount = useMemo(() => {
     return expenses.reduce((sum, item) => sum + Number(item.amount), 0);
   }, [expenses]);
 
   const handleSave = async () => {
-    if (!category.trim() || !amount.trim()) {
+    if (!category || !amount) {
       setError("Please select a category and enter an amount.");
       return;
     }
@@ -63,6 +64,7 @@ export default function ExpenseTabScreen() {
         amount: parseFloat(amount),
         description,
       });
+
       Alert.alert("Success", "Expense saved successfully");
       loadExpenses();
       closeModal();
@@ -79,21 +81,29 @@ export default function ExpenseTabScreen() {
     setModalVisible(false);
   };
 
+  // Render expense list item
   const renderExpense = ({ item }: { item: ExpenseItem }) => (
     <View style={styles.card}>
       <View style={styles.cardIconContainer}>
-        <Ionicons name="receipt-outline" size={24} color="#10B981" />
+        <Ionicons
+          name={expenseCategoryIcons[item.category] ?? "receipt-outline"}
+          size={24}
+          color="#10B981"
+        />
       </View>
+
       <View style={styles.cardContent}>
         <View style={styles.cardRow}>
           <Text style={styles.categoryText}>{item.category}</Text>
           <Text style={styles.amountText}>
-            -₱{item.amount.toLocaleString()}
+            -₱{Number(item.amount).toLocaleString()}
           </Text>
         </View>
+
         <Text style={styles.descriptionText} numberOfLines={1}>
           {item.description || "No description"}
         </Text>
+
         <Text style={styles.dateText}>
           {item.created_at
             ? dayjs(item.created_at).format("DD MMM, YYYY")
@@ -107,12 +117,13 @@ export default function ExpenseTabScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
 
-      {/* Header Summary */}
+      {/* Header */}
       <View style={styles.headerCard}>
         <Text style={styles.headerLabel}>Total Expenses</Text>
         <Text style={styles.headerAmount}>₱{totalAmount.toLocaleString()}</Text>
       </View>
 
+      {/* Expense List */}
       <FlatList
         data={expenses}
         keyExtractor={(item) => item.expense_id}
@@ -130,10 +141,12 @@ export default function ExpenseTabScreen() {
         }
       />
 
+      {/* FAB */}
       <Pressable style={styles.fab} onPress={() => setModalVisible(true)}>
         <Ionicons name="add" size={30} color="#fff" />
       </Pressable>
 
+      {/* Modal */}
       <Modal
         animationType="slide"
         transparent
@@ -149,6 +162,17 @@ export default function ExpenseTabScreen() {
             <ScrollView showsVerticalScrollIndicator={false}>
               <Text style={styles.modalTitle}>Add Expense</Text>
 
+              {/* Dynamic Icon */}
+              {category && (
+                <Ionicons
+                  name={expenseCategoryIcons[category] ?? "receipt-outline"}
+                  size={48}
+                  color="#10B981"
+                  style={{ alignSelf: "center", marginBottom: 12 }}
+                />
+              )}
+
+              {/* Category Picker */}
               <Text style={styles.label}>Category</Text>
               <View style={styles.pickerContainer}>
                 <Picker
@@ -161,15 +185,16 @@ export default function ExpenseTabScreen() {
                     value=""
                     color="#94A3B8"
                   />
-                  <Picker.Item label="🍔 Food" value="Food" />
-                  <Picker.Item label="🚗 Transport" value="Transport" />
-                  <Picker.Item label="🏠 Rent" value="Rent" />
-                  <Picker.Item label="💡 Utilities" value="Utilities" />
-                  <Picker.Item label="🎬 Entertainment" value="Entertainment" />
-                  <Picker.Item label="📦 Others" value="Others" />
+                  <Picker.Item label="Food" value="Food" />
+                  <Picker.Item label="Transport" value="Transport" />
+                  <Picker.Item label="Rent" value="Rent" />
+                  <Picker.Item label="Utilities" value="Utilities" />
+                  <Picker.Item label="Entertainment" value="Entertainment" />
+                  <Picker.Item label="Others" value="Others" />
                 </Picker>
               </View>
 
+              {/* Amount */}
               <Text style={styles.label}>Amount</Text>
               <TextInput
                 style={styles.input}
@@ -180,6 +205,7 @@ export default function ExpenseTabScreen() {
                 keyboardType="decimal-pad"
               />
 
+              {/* Description */}
               <Text style={styles.label}>Description</Text>
               <TextInput
                 style={[styles.input, styles.textArea]}
@@ -192,6 +218,7 @@ export default function ExpenseTabScreen() {
 
               {error && <Text style={styles.errorText}>{error}</Text>}
 
+              {/* Buttons */}
               <View style={styles.buttonRow}>
                 <Pressable
                   style={[styles.btn, styles.btnSecondary]}
@@ -214,28 +241,21 @@ export default function ExpenseTabScreen() {
   );
 }
 
+// Styles
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F8FAFC",
-  },
+  container: { flex: 1, backgroundColor: "#F8FAFC" },
   headerCard: {
     backgroundColor: "#0F172A",
     margin: 16,
     padding: 24,
     borderRadius: 20,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
   },
   headerLabel: {
     color: "#94A3B8",
     fontSize: 14,
     fontWeight: "600",
     textTransform: "uppercase",
-    letterSpacing: 1,
   },
   headerAmount: {
     color: "#FFFFFF",
@@ -248,12 +268,8 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#1E293B",
     marginBottom: 16,
-    paddingHorizontal: 4,
   },
-  listContainer: {
-    padding: 16,
-    paddingBottom: 100,
-  },
+  listContainer: { padding: 16, paddingBottom: 100 },
   card: {
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
@@ -273,35 +289,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 16,
   },
-  cardContent: {
-    flex: 1,
-  },
-  cardRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  categoryText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#1E293B",
-  },
-  amountText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#EF4444",
-  },
-  descriptionText: {
-    fontSize: 14,
-    color: "#64748B",
-    marginTop: 2,
-  },
-  dateText: {
-    fontSize: 11,
-    color: "#94A3B8",
-    marginTop: 8,
-    fontWeight: "500",
-  },
+  cardContent: { flex: 1 },
+  cardRow: { flexDirection: "row", justifyContent: "space-between" },
+  categoryText: { fontSize: 16, fontWeight: "600", color: "#1E293B" },
+  amountText: { fontSize: 16, fontWeight: "700", color: "#EF4444" },
+  descriptionText: { fontSize: 14, color: "#64748B", marginTop: 2 },
+  dateText: { fontSize: 11, color: "#94A3B8", marginTop: 8 },
   fab: {
     position: "absolute",
     right: 20,
@@ -312,22 +305,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#10B981",
     alignItems: "center",
     justifyContent: "center",
-    elevation: 5,
-    shadowColor: "#10B981",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
   },
-  emptyContainer: {
-    alignItems: "center",
-    marginTop: 60,
-  },
-  emptyText: {
-    marginTop: 12,
-    color: "#94A3B8",
-    fontSize: 16,
-  },
-  // Modal Styles
+  emptyContainer: { alignItems: "center", marginTop: 60 },
+  emptyText: { marginTop: 12, color: "#94A3B8", fontSize: 16 },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(15, 23, 42, 0.5)",
@@ -348,12 +328,7 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     marginBottom: 20,
   },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#1E293B",
-    marginBottom: 20,
-  },
+  modalTitle: { fontSize: 22, fontWeight: "700", color: "#1E293B" },
   label: {
     fontSize: 14,
     fontWeight: "600",
@@ -368,54 +343,20 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 14,
     fontSize: 16,
-    color: "#1E293B",
   },
-  textArea: {
-    height: 80,
-    textAlignVertical: "top",
-  },
+  textArea: { height: 80, textAlignVertical: "top" },
   pickerContainer: {
     backgroundColor: "#F8FAFC",
     borderWidth: 1,
     borderColor: "#E2E8F0",
     overflow: "hidden",
   },
-  picker: {
-    height: 50,
-    width: "100%",
-  },
-  errorText: {
-    color: "#EF4444",
-    fontSize: 13,
-    marginTop: 8,
-    fontWeight: "500",
-  },
-  buttonRow: {
-    flexDirection: "row",
-    marginTop: 32,
-    gap: 12,
-  },
-  btn: {
-    flex: 1,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  btnPrimary: {
-    backgroundColor: "#10B981",
-  },
-  btnSecondary: {
-    backgroundColor: "#F1F5F9",
-  },
-  btnTextPrimary: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-    fontSize: 16,
-  },
-  btnTextSecondary: {
-    color: "#64748B",
-    fontWeight: "700",
-    fontSize: 16,
-  },
+  picker: { height: 50, width: "100%" },
+  errorText: { color: "#EF4444", marginTop: 8 },
+  buttonRow: { flexDirection: "row", marginTop: 32, gap: 12 },
+  btn: { flex: 1, paddingVertical: 16, borderRadius: 12, alignItems: "center" },
+  btnPrimary: { backgroundColor: "#10B981" },
+  btnSecondary: { backgroundColor: "#F1F5F9" },
+  btnTextPrimary: { color: "#FFFFFF", fontWeight: "700" },
+  btnTextSecondary: { color: "#64748B", fontWeight: "700" },
 });

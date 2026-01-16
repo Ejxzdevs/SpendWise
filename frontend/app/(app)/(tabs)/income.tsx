@@ -16,11 +16,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import { saveIncome, fetchIncomes } from "@/services/incomeService";
 import { IncomeItem } from "@/types/income";
-import { expenseCategory, expenseCategoryIcons } from "@/types/category";
+import { incomeCategoryIcons } from "@/types/category";
 
 export default function IncomeTabScreen() {
   const [modalVisible, setModalVisible] = useState(false);
-  const [source, setSource] = useState<expenseCategory | "">("");
+  const [source, setSource] = useState("");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [incomes, setIncomes] = useState<IncomeItem[]>([]);
@@ -78,14 +78,13 @@ export default function IncomeTabScreen() {
   const renderIncomeItem = ({ item }: { item: IncomeItem }) => (
     <View style={styles.card}>
       <View style={styles.cardIconContainer}>
-        {item.source &&
-          expenseCategoryIcons[item.source as expenseCategory] && (
-            <Ionicons
-              name={expenseCategoryIcons[item.source as expenseCategory]}
-              size={24}
-              color="#2563EB"
-            />
-          )}
+        {item.source && incomeCategoryIcons[item.source] && (
+          <Ionicons
+            name={incomeCategoryIcons[item.source] ?? "cash-outline"}
+            size={24}
+            color="#2563EB"
+          />
+        )}
       </View>
       <View style={styles.cardContent}>
         <View style={styles.cardRow}>
@@ -142,7 +141,7 @@ export default function IncomeTabScreen() {
               {/* Dynamic Icon */}
               {source ? (
                 <Ionicons
-                  name={expenseCategoryIcons[source]}
+                  name={incomeCategoryIcons[source]}
                   size={48}
                   color="#2563EB"
                   style={{ alignSelf: "center", marginBottom: 12 }}
