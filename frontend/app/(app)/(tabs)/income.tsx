@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   StyleSheet,
   View,
@@ -10,37 +10,38 @@ import {
   KeyboardAvoidingView,
   Platform,
   FlatList,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
-import { saveIncome } from "@/services/incomeService";
+import { saveIncome, fetchIncomes } from "@/services/incomeService";
+import { IncomeItem } from "@/types/income";
 
 export default function IncomeTabScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [source, setsource] = useState("");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
+  const [incomes, setIncomes] = useState<IncomeItem[]>([]);
 
-  // Static Data for Demo
-  const incomeList = [
-    {
-      id: "1",
-      source: "Salary",
-      amount: 45000,
-      description: "Monthly Pay",
-      date: "15 Jan",
-    },
-    {
-      id: "2",
-      source: "Freelance",
-      amount: 5000,
-      description: "Logo Design",
-      date: "12 Jan",
-    },
-  ];
+  useEffect(() => {
+    const loadIncomes = async () => {
+      try {
+        const response = await fetchIncomes();
+        console.log("Fetched incomes:", response.data);
+        setIncomes(response.data);
+      } catch (error) {
+        console.error("Error fetching incomes:", error);
+      }
+    };
+    loadIncomes();
+  }, []);
+
+  const totalIncome = useMemo(() => {
+    return incomes.reduce((sum, income) => sum + Number(income.amount), 0);
+  }, [incomes]);
 
   const handleSaveIncome = async () => {
-    // Implement save income logic here
     const payload = {
       source,
       amount: parseFloat(amount),
@@ -48,6 +49,10 @@ export default function IncomeTabScreen() {
     };
     try {
       await saveIncome(payload);
+      // Refresh income list after saving
+      const response = await fetchIncomes();
+      Alert.alert("Success", "Income saved successfully");
+      setIncomes(response.data);
       closeModal();
     } catch (error) {
       console.error("Error saving income:", error);
@@ -83,13 +88,13 @@ export default function IncomeTabScreen() {
       {/* Header */}
       <View style={styles.headerCard}>
         <Text style={styles.headerLabel}>Total Revenue</Text>
-        <Text style={styles.headerAmount}>₱50,000.00</Text>
+        <Text style={styles.headerAmount}>{totalIncome.toLocaleString()}</Text>
       </View>
 
       <FlatList
-        data={incomeList}
+        data={incomes}
         renderItem={renderIncomeItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.source_id}
         contentContainerStyle={styles.listContainer}
         ListHeaderComponent={
           <Text style={styles.sectionTitle}>Income History</Text>
