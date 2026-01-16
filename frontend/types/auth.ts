@@ -14,7 +14,7 @@ export type LoginResponse =
       success: true;
       token: string;
       user: {
-        id: string;
+        user_id: string;
         username: string;
       };
     }
