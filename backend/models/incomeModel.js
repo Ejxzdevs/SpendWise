@@ -17,6 +17,18 @@ class IncomeModel {
       throw new Error("Error creating user");
     }
   }
+
+  // Get all incomes
+  static async getAllIncomes() {
+    const sql = ` SELECT * FROM incomes ORDER BY created_at DESC; `;
+    try {
+      const result = await _query(sql);
+      return result.rows;
+    } catch (error) {
+      console.error(error);
+      throw new Error("Error fetching incomes");
+    }
+  }
 }
 
 export default IncomeModel;
