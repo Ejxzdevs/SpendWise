@@ -15,6 +15,20 @@ class incomeServices {
     await redisClient.del("incomes:all");
     return newincome;
   }
+
+  static async getAllIncomes() {
+    // Check Redis cache first
+    const cachedIncomes = await redisClient.get("incomes:all");
+    if (cachedIncomes) {
+      return JSON.parse(cachedIncomes);
+    }
+
+    // If not in cache, fetch from DB
+    const incomes = await IncomesModel.getAllIncomes();
+    // Store in Redis cache for future requests
+    await redisClient.set("incomes:all", JSON.stringify(incomes), "EX", 300);
+    return incomes;
+  }
 }
 
 export default incomeServices;
