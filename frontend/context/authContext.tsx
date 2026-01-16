@@ -62,7 +62,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUsername(user.username);
     setUserToken(token);
     setUserTokenState(token);
-    router.replace("/(tabs)");
+    router.replace("/(app)/(tabs)");
   };
 
   const logout = async () => {
