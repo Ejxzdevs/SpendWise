@@ -72,7 +72,7 @@ class AuthController {
         success: true,
         token,
         user: {
-          id: user.user_id,
+          user_id: user.user_id,
           username: user.username,
         },
       });
