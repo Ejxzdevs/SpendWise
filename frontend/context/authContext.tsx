@@ -56,7 +56,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (
     token: string,
-    user: { id: string; username: string }
+    user: { user_id: string; username: string },
   ) => {
     setUserInfo(user);
     setUsername(user.username);
