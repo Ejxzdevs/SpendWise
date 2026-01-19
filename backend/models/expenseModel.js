@@ -3,14 +3,14 @@ import { query as _query } from "../config/db.js";
 
 class ExpensesModel {
   // Create new expense
-  static async createExpense({ category, amount, description }) {
+  static async createExpense({ userId, category, amount, description }) {
     const sql = `
-      INSERT INTO expenses (category, amount, description)
-      VALUES ($1, $2, $3)
+      INSERT INTO expenses (user_id, category, amount, description)
+      VALUES ($1, $2, $3, $4)
       RETURNING *;
     `;
     try {
-      const result = await _query(sql, [category, amount, description]);
+      const result = await _query(sql, [userId, category, amount, description]);
       return result.rows[0];
     } catch (error) {
       console.error(error);
@@ -19,12 +19,12 @@ class ExpensesModel {
   }
 
   // Get all expenses
-  static async getAllExpenses() {
+  static async getAllExpenses(userId) {
     const sql = `
-      SELECT * FROM expenses;
+      SELECT * FROM expenses WHERE user_id = $1;
     `;
     try {
-      const result = await _query(sql);
+      const result = await _query(sql, [userId]);
       return result.rows;
     } catch (error) {
       console.error(error);
