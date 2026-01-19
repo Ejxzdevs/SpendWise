@@ -34,17 +34,20 @@ export type RegisterResponse =
       message: string;
     };
 
-// --------------------
-// CONTEXT TYPES
-// --------------------
-
+// API CONTEXT TYPE
 export interface AuthContextType {
   userToken: string | null;
   username: string | null;
   loading: boolean;
   login: (
     token: string,
-    user: { id: string; username: string }
+    user: { user_id: string; username: string },
   ) => Promise<void>;
   logout: () => Promise<void>;
 }
+
+// AUTH USER TYPE
+export type AuthUser = {
+  user_id: string;
+  username: string;
+};
