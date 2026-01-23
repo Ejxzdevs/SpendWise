@@ -30,6 +30,7 @@ export default function IncomeTabScreen() {
     const loadIncomes = async () => {
       try {
         const response = await fetchIncomes();
+        console.log("Fetched incomes:", response.data);
         setIncomes(response.data);
       } catch (error) {
         console.error("Error fetching incomes:", error);
