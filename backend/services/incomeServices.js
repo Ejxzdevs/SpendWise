@@ -3,30 +3,28 @@ import IncomesModel from "../models/incomeModel.js";
 
 class incomeServices {
   // CREATE income + invalidate cache
-  static async createIncome({ source, amount, description }) {
+  static async createIncome({ userId, source, amount, description }) {
     // Create new income in DB
     const newincome = await IncomesModel.createIncome({
+      userId,
       source,
       amount,
       description,
     });
 
     // Invalidate Redis cache
-    await redisClient.del("incomes:all");
+    await redisClient.del(`incomes:${userId}`);
     return newincome;
   }
 
-  static async getAllIncomes() {
+  static async getAllIncomes(userId) {
     // Check Redis cache first
-    const cachedIncomes = await redisClient.get("incomes:all");
-    if (cachedIncomes) {
-      return JSON.parse(cachedIncomes);
-    }
+    const cached = await redisClient.get(`incomes:${userId}`);
+    if (cached) return JSON.parse(cached);
 
     // If not in cache, fetch from DB
-    const incomes = await IncomesModel.getAllIncomes();
-    // Store in Redis cache for future requests
-    await redisClient.set("incomes:all", JSON.stringify(incomes), "EX", 300);
+    const incomes = await IncomesModel.getAllIncomes(userId);
+    await redisClient.setEx(`incomes:${userId}`, 300, JSON.stringify(incomes));
     return incomes;
   }
 }
