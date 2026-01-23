@@ -2,6 +2,7 @@ import IncomeServices from "../services/incomeServices.js";
 
 class IncomeController {
   createIncome = async (req, res) => {
+    const userId = req.user.id;
     const { source, amount, description } = req.body;
     if (!source || !amount)
       return res
@@ -9,7 +10,12 @@ class IncomeController {
         .json({ success: false, message: "Required fields missing" });
 
     try {
-      await IncomeServices.createIncome({ source, amount, description });
+      await IncomeServices.createIncome({
+        userId,
+        source,
+        amount,
+        description,
+      });
       res.status(201).json({ success: true, message: "Income created" });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
@@ -17,8 +23,9 @@ class IncomeController {
   };
 
   getAllIncomes = async (req, res) => {
+    const userId = req.user.id;
     try {
-      const incomes = await IncomeServices.getAllIncomes();
+      const incomes = await IncomeServices.getAllIncomes(userId);
       res.status(200).json({ success: true, data: incomes });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
