@@ -4,7 +4,7 @@ import goalController from "../controllers/goalController.js";
 
 const router = Router();
 
-router.post("/create", goalController.createGoal);
-router.get("/all", goalController.getAllGoals);
+router.post("/create", authenticateUser, goalController.createGoal);
+router.get("/all", authenticateUser, goalController.getAllGoals);
 
 export default router;
