@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
-import { saveIncome, fetchIncomes } from "@/services/incomeService";
+import { saveIncome, fetchIncomes } from "@/services/incomeServices";
 import { IncomeItem } from "@/types/income";
 import { incomeCategoryIcons } from "@/types/category";
 
