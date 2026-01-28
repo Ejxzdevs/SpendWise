@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, act } from "react";
 import {
   StyleSheet,
   View,
@@ -6,117 +6,173 @@ import {
   Pressable,
   Modal,
   TextInput,
-  ScrollView,
+  FlatList,
   KeyboardAvoidingView,
   Platform,
-  FlatList,
+  Alert,
+  Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { saveGoal, fetchGoals } from "@/services/goalServices";
+import { iconOptions, IconName, GoalPayload, GoalItems } from "@/types/goal";
 
-// Types for the Goal Item
-interface GoalItem {
-  id: string;
-  name: string;
-  targetAmount: number;
-  savedAmount: number;
-  targetDate: string;
-  icon: any;
-  color: string;
-}
+const { width } = Dimensions.get("window");
 
 export default function GoalsScreen() {
-  // Modal State
   const [modalVisible, setModalVisible] = useState(false);
+  const [goals, setGoals] = useState<GoalItems[]>([]);
 
   // Form State
-  const [name, setName] = useState("");
-  const [amount, setAmount] = useState("");
-  const [date, setDate] = useState("");
-  const [selectedIcon, setSelectedIcon] = useState("cart");
+  const [goal, setGoal] = useState("");
+  const [targetAmount, setTargetAmount] = useState("");
+  const [targetDate, setTargetDate] = useState("");
+  const [description, setDescription] = useState("");
+  const [selectedIcon, setSelectedIcon] = useState<IconName | null>(null);
 
-  // Static Data (You can replace this with a real backend later)
-  const [goals, setGoals] = useState<GoalItem[]>([
-    {
-      id: "1",
-      name: "iPhone 15 Pro",
-      targetAmount: 70000,
-      savedAmount: 42000,
-      targetDate: "Dec 2026",
-      icon: "phone-portrait-outline",
-      color: "#1E293B",
-    },
-    {
-      id: "2",
-      name: "Japan Vacation",
-      targetAmount: 100000,
-      savedAmount: 25000,
-      targetDate: "May 2026",
-      icon: "airplane-outline",
-      color: "#E11D48",
-    },
-  ]);
+  /** ---------------- LOAD GOALS ---------------- */
+  const loadGoals = async () => {
+    try {
+      const response = await fetchGoals();
+      if (response.success) {
+        setGoals(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching goals:", error);
+    }
+  };
 
-  const handleCreateGoal = () => {
-    if (!name || !amount) return;
+  useEffect(() => {
+    loadGoals();
+  }, []);
 
-    const newGoal: GoalItem = {
-      id: Math.random().toString(),
-      name,
-      targetAmount: parseFloat(amount),
-      savedAmount: 0,
-      targetDate: date || "No Date",
-      icon: selectedIcon,
-      color: "#6366F1", // Default Indigo
+  /** ---------------- DATE FORMAT ---------------- */
+  const handleDateChange = (text: string) => {
+    let cleaned = text.replace(/\D/g, "");
+    if (cleaned.length > 2) {
+      cleaned = `${cleaned.slice(0, 2)} / ${cleaned.slice(2, 6)}`;
+    }
+    setTargetDate(cleaned);
+  };
+
+  const formatDateForPayload = (dateString: string) => {
+    const [month, year] = dateString.split(" / ");
+    if (!month || !year || year.length < 4) return null;
+    return `${year}-${month.padStart(2, "0")}-01`;
+  };
+
+  /** ---------------- SAVE GOAL ---------------- */
+  const handleSaveGoal = async () => {
+    const formattedDate = formatDateForPayload(targetDate);
+
+    if (!goal || !targetAmount || !formattedDate) {
+      Alert.alert(
+        "Missing Info",
+        "Please fill in the goal, amount, and valid date.",
+      );
+      return;
+    }
+
+    const payload: GoalPayload = {
+      goal_name: goal,
+      target_amount: parseFloat(targetAmount),
+      target_date: formattedDate,
+      description,
+      icon_name: selectedIcon ?? undefined,
     };
 
-    setGoals([...goals, newGoal]);
-    closeModal();
+    try {
+      await saveGoal(payload);
+      closeModal();
+      loadGoals();
+    } catch {
+      Alert.alert("Error", "Failed to save goal.");
+    }
   };
 
   const closeModal = () => {
-    setName("");
-    setAmount("");
-    setDate("");
+    setGoal("");
+    setTargetAmount("");
+    setTargetDate("");
+    setDescription("");
+    setSelectedIcon(null);
     setModalVisible(false);
   };
 
-  const renderGoal = ({ item }: { item: GoalItem }) => {
-    const progress = (item.savedAmount / item.targetAmount) * 100;
+  /** ---------------- RENDER GOAL CARD ---------------- */
+  const renderGoal = ({ item }: { item: GoalItems }) => {
+    const progress = Math.min(
+      (item.current_amount / item.target_amount) * 100,
+      100,
+    );
 
     return (
-      <View style={styles.goalCard}>
+      <View style={styles.card}>
         <View style={styles.cardTop}>
-          <View
-            style={[styles.iconBox, { backgroundColor: item.color + "15" }]}
-          >
-            <Ionicons name={item.icon} size={28} color={item.color} />
+          <View style={styles.iconContainer}>
+            <Ionicons
+              name={item.icon_name || "rocket"}
+              size={22}
+              color="#10B981"
+            />
           </View>
-          <View style={styles.goalInfo}>
-            <Text style={styles.goalName}>{item.name}</Text>
-            <Text style={styles.goalDate}>Target: {item.targetDate}</Text>
+
+          <View style={{ flex: 1 }}>
+            <Text style={styles.goalName}>{item.goal_name}</Text>
+            <Text style={styles.goalTarget}>
+              Target: ₱{item.target_amount.toLocaleString()}
+            </Text>
           </View>
+
           <Text style={styles.percentageText}>{Math.round(progress)}%</Text>
         </View>
 
-        {/* Progress Bar */}
-        <View style={styles.progressBackground}>
-          <View
-            style={[
-              styles.progressFill,
-              { width: `${progress}%`, backgroundColor: item.color },
-            ]}
-          />
+        <View style={styles.progressTrack}>
+          <View style={[styles.progressBar, { width: `${progress}%` }]} />
         </View>
 
         <View style={styles.cardBottom}>
-          <Text style={styles.amountSaved}>
-            ₱{item.savedAmount.toLocaleString()}{" "}
-            <Text style={styles.amountTotal}>
-              / ₱{item.targetAmount.toLocaleString()}
-            </Text>
+          <Text style={styles.currentAmount}>
+            ₱{item.current_amount.toLocaleString()}
           </Text>
-          <Pressable style={styles.contributeBtn}>
-            <Text style={styles.contributeText}>Add Money</Text>
+          <View style={styles.dateBadge}>
+            <Ionicons name="calendar-outline" size={12} color="#64748B" />
+            <Text style={styles.dateText}>
+              {new Date(item.target_date).toLocaleDateString()}
+            </Text>
+          </View>
+        </View>
+        <View style={styles.actionContainer}>
+          {/* Add */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.button,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={() => console.log("Add pressed")}
+          >
+            <Ionicons name="add-circle-outline" size={20} color="#1ad358" />
+          </Pressable>
+
+          {/* Edit */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.button,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={() => console.log("Edit pressed")}
+          >
+            <Ionicons name="create-outline" size={20} color="#120fda" />
+          </Pressable>
+
+          {/* Delete */}
+          <Pressable
+            style={({ pressed }) => [
+              styles.button,
+              pressed && styles.buttonPressed,
+            ]}
+            onPress={() => console.log("Delete pressed")}
+          >
+            <Ionicons name="trash-outline" size={20} color="#d11313" />
           </Pressable>
         </View>
       </View>
@@ -125,122 +181,113 @@ export default function GoalsScreen() {
 
   return (
     <View style={styles.container}>
-      {/* List Content */}
+      {/* HEADER */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.headerTitle}>Savings Goals</Text>
+          <Text style={styles.headerSubtitle}>Fuel your future</Text>
+        </View>
+        <View style={styles.headerCircle} />
+      </View>
+
+      {/* GOALS LIST */}
       <FlatList
         data={goals}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.goal_id}
         renderItem={renderGoal}
-        contentContainerStyle={styles.listContainer}
-        ListHeaderComponent={
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>Savings Goals</Text>
-            <Text style={styles.headerSubtitle}>
-              Items you're working towards
-            </Text>
-          </View>
-        }
+        contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Ionicons name="gift-outline" size={64} color="#CBD5E1" />
-            <Text style={styles.emptyText}>No goals yet. Start dreaming!</Text>
+            <Ionicons name="leaf-outline" size={64} color="#CBD5E1" />
+            <Text style={styles.emptyText}>No goals yet. Start small!</Text>
           </View>
         }
       />
 
-      {/* FIXED FLOATING ACTION BUTTON */}
-      <Pressable
-        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-        onPress={() => setModalVisible(true)}
-      >
+      {/* FAB */}
+      <Pressable style={styles.fab} onPress={() => setModalVisible(true)}>
         <Ionicons name="add" size={32} color="#FFF" />
       </Pressable>
 
-      {/* CREATE GOAL MODAL */}
-      <Modal
-        animationType="slide"
-        transparent
-        visible={modalVisible}
-        onRequestClose={closeModal}
-      >
+      {/* MODAL */}
+      <Modal transparent animationType="fade" visible={modalVisible}>
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.modalOverlay}
         >
           <View style={styles.modalContainer}>
             <View style={styles.modalHandle} />
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={styles.modalTitle}>New Savings Goal</Text>
+            <Text style={styles.modalTitle}>Create Goal</Text>
 
-              <Text style={styles.label}>What are you saving for?</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g. New Laptop, Dream Car"
-                placeholderTextColor="#94A3B8"
-                value={name}
-                onChangeText={setName}
-              />
+            <FlatList
+              data={iconOptions}
+              keyExtractor={(item) => item}
+              numColumns={5}
+              showsVerticalScrollIndicator={false}
+              ListHeaderComponent={
+                <>
+                  <Text style={styles.inputLabel}>Goal Name</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={goal}
+                    onChangeText={setGoal}
+                    placeholder="e.g. New Laptop"
+                  />
 
-              <Text style={styles.label}>Target Amount</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="₱ 0.00"
-                placeholderTextColor="#94A3B8"
-                value={amount}
-                onChangeText={setAmount}
-                keyboardType="decimal-pad"
-              />
+                  <View style={styles.inputRow}>
+                    <View style={{ flex: 1, marginRight: 8 }}>
+                      <Text style={styles.inputLabel}>Amount (₱)</Text>
+                      <TextInput
+                        style={styles.input}
+                        keyboardType="decimal-pad"
+                        value={targetAmount}
+                        onChangeText={setTargetAmount}
+                      />
+                    </View>
 
-              <Text style={styles.label}>Target Date (Optional)</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="MM / YYYY"
-                placeholderTextColor="#94A3B8"
-                value={date}
-                onChangeText={setDate}
-              />
+                    <View style={{ flex: 1, marginLeft: 8 }}>
+                      <Text style={styles.inputLabel}>Deadline</Text>
+                      <TextInput
+                        style={styles.input}
+                        placeholder="MM / YYYY"
+                        keyboardType="number-pad"
+                        maxLength={9}
+                        value={targetDate}
+                        onChangeText={handleDateChange}
+                      />
+                    </View>
+                  </View>
 
-              <Text style={styles.label}>Select Icon</Text>
-              <View style={styles.iconPicker}>
-                {[
-                  "cart",
-                  "airplane",
-                  "home",
-                  "car",
-                  "gift",
-                  "game-controller",
-                ].map((icon) => (
-                  <Pressable
-                    key={icon}
-                    onPress={() => setSelectedIcon(icon)}
-                    style={[
-                      styles.iconOption,
-                      selectedIcon === icon && styles.iconOptionSelected,
-                    ]}
-                  >
-                    <Ionicons
-                      name={icon as any}
-                      size={24}
-                      color={selectedIcon === icon ? "#10B981" : "#64748B"}
-                    />
+                  <Text style={styles.inputLabel}>Choose an Icon</Text>
+                </>
+              }
+              renderItem={({ item }) => (
+                <Pressable
+                  style={[
+                    styles.iconOption,
+                    selectedIcon === item && styles.iconSelected,
+                  ]}
+                  onPress={() => setSelectedIcon(item)}
+                >
+                  <Ionicons
+                    name={item}
+                    size={22}
+                    color={selectedIcon === item ? "#10B981" : "#475569"}
+                  />
+                </Pressable>
+              )}
+              ListFooterComponent={
+                <View style={styles.buttonRow}>
+                  <Pressable style={styles.btnSecondary} onPress={closeModal}>
+                    <Text style={styles.btnSecondaryText}>Cancel</Text>
                   </Pressable>
-                ))}
-              </View>
-
-              <View style={styles.buttonRow}>
-                <Pressable
-                  style={[styles.btn, styles.btnSecondary]}
-                  onPress={closeModal}
-                >
-                  <Text style={styles.btnTextSecondary}>Cancel</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.btn, styles.btnPrimary]}
-                  onPress={handleCreateGoal}
-                >
-                  <Text style={styles.btnTextPrimary}>Create Goal</Text>
-                </Pressable>
-              </View>
-            </ScrollView>
+                  <Pressable style={styles.btnPrimary} onPress={handleSaveGoal}>
+                    <Text style={styles.btnPrimaryText}>Create Goal</Text>
+                  </Pressable>
+                </View>
+              }
+            />
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -248,149 +295,191 @@ export default function GoalsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#F8FAFC" },
-  header: { paddingVertical: 24, paddingHorizontal: 4 },
-  headerTitle: { fontSize: 28, fontWeight: "800", color: "#1E293B" },
-  headerSubtitle: { fontSize: 16, color: "#64748B", marginTop: 4 },
-  listContainer: { padding: 20, paddingBottom: 100 },
+/* ---------------- STYLES ---------------- */
 
-  // Goal Card
-  goalCard: {
-    backgroundColor: "#FFF",
-    marginBottom: 20,
-    borderRadius: 24,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: "#F1F5F9",
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-  },
-  cardTop: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
-  iconBox: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    justifyContent: "center",
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#FBFDFF" },
+
+  header: {
+    paddingTop: 60,
+    paddingHorizontal: 24,
+    paddingBottom: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
   },
-  goalInfo: { flex: 1, marginLeft: 16 },
-  goalName: { fontSize: 18, fontWeight: "700", color: "#1E293B" },
-  goalDate: { fontSize: 13, color: "#94A3B8", marginTop: 2 },
-  percentageText: { fontSize: 18, fontWeight: "800", color: "#1E293B" },
-
-  progressBackground: {
-    height: 10,
-    backgroundColor: "#F1F5F9",
-    borderRadius: 5,
-    overflow: "hidden",
+  headerTitle: {
+    fontSize: 30,
+    fontWeight: "800",
+    color: "#0F172A",
   },
-  progressFill: { height: "100%", borderRadius: 5 },
+  headerSubtitle: { fontSize: 16, color: "#64748B" },
+  headerCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#E2E8F0",
+  },
+
+  list: { paddingHorizontal: 20, paddingBottom: 120 },
+
+  card: {
+    backgroundColor: "#FFF",
+    padding: 20,
+    borderRadius: 24,
+    marginBottom: 16,
+    elevation: 3,
+  },
+
+  cardTop: { flexDirection: "row", alignItems: "center" },
+  iconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "#ECFDF5",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+
+  goalName: { fontSize: 18, fontWeight: "700" },
+  goalTarget: { fontSize: 13, color: "#94A3B8" },
+  percentageText: { fontSize: 16, fontWeight: "800", color: "#10B981" },
+
+  progressTrack: {
+    height: 8,
+    backgroundColor: "#F1F5F9",
+    borderRadius: 4,
+    marginTop: 14,
+  },
+  progressBar: {
+    height: "100%",
+    backgroundColor: "#10B981",
+    borderRadius: 4,
+  },
 
   cardBottom: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 16,
-    alignItems: "center",
+    marginTop: 14,
   },
-  amountSaved: { fontSize: 15, fontWeight: "700", color: "#1E293B" },
-  amountTotal: { fontWeight: "400", color: "#94A3B8" },
-  contributeBtn: {
-    backgroundColor: "#F1F5F9",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
+
+  currentAmount: { fontSize: 18, fontWeight: "700" },
+
+  dateBadge: {
+    flexDirection: "row",
+    backgroundColor: "#F8FAFC",
+    padding: 6,
+    borderRadius: 8,
   },
-  contributeText: { fontSize: 12, fontWeight: "700", color: "#10B981" },
+  dateText: { fontSize: 12, marginLeft: 4 },
+  actionContainer: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 5,
+    marginTop: 10,
+  },
+  button: {
+    padding: 1,
+  },
+  buttonPressed: {
+    transform: [{ scale: 0.8 }],
+    opacity: 0.7,
+  },
 
-  emptyContainer: { alignItems: "center", marginTop: 60 },
-  emptyText: { marginTop: 12, color: "#94A3B8", fontSize: 16 },
+  emptyContainer: { alignItems: "center", marginTop: 80 },
+  emptyText: { marginTop: 12, color: "#94A3B8" },
 
-  // Floating Action Button
   fab: {
     position: "absolute",
     right: 24,
-    bottom: 30,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "#10B981",
-    alignItems: "center",
+    bottom: 34,
+    width: 60,
+    height: 60,
+    borderRadius: 20,
+    backgroundColor: "#0F172A",
     justifyContent: "center",
-    elevation: 8,
-    shadowColor: "#10B981",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
+    alignItems: "center",
   },
-  fabPressed: { transform: [{ scale: 0.9 }], opacity: 0.9 },
 
-  // Modal Styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(15, 23, 42, 0.5)",
+    backgroundColor: "rgba(15, 23, 42, 0.6)",
     justifyContent: "flex-end",
   },
   modalContainer: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#FFF",
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     padding: 24,
-    maxHeight: "85%",
+    maxHeight: "90%",
   },
+
   modalHandle: {
     width: 40,
-    height: 4,
+    height: 5,
     backgroundColor: "#E2E8F0",
-    borderRadius: 2,
+    borderRadius: 10,
     alignSelf: "center",
     marginBottom: 20,
   },
+
   modalTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#1E293B",
-    marginBottom: 20,
+    fontSize: 24,
+    fontWeight: "800",
+    textAlign: "center",
+    marginBottom: 24,
   },
-  label: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#475569",
-    marginBottom: 8,
-    marginTop: 16,
-  },
+
+  inputLabel: { fontWeight: "700", marginBottom: 6 },
   input: {
     backgroundColor: "#F8FAFC",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 16,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
   },
-  iconPicker: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-    marginTop: 10,
-  },
+
+  inputRow: { flexDirection: "row" },
+
   iconOption: {
     width: 50,
     height: 50,
-    borderRadius: 12,
+    borderRadius: 16,
     backgroundColor: "#F8FAFC",
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
+    margin: 6,
   },
-  iconOptionSelected: { borderColor: "#10B981", backgroundColor: "#ECFDF5" },
-  buttonRow: { flexDirection: "row", marginTop: 32, gap: 12 },
-  btn: { flex: 1, paddingVertical: 16, borderRadius: 12, alignItems: "center" },
-  btnPrimary: { backgroundColor: "#10B981" },
-  btnSecondary: { backgroundColor: "#F1F5F9" },
-  btnTextPrimary: { color: "#FFFFFF", fontWeight: "700" },
-  btnTextSecondary: { color: "#64748B", fontWeight: "700" },
+
+  iconSelected: {
+    backgroundColor: "#ECFDF5",
+    borderWidth: 1,
+    borderColor: "#10B981",
+  },
+
+  buttonRow: {
+    flexDirection: "row",
+    marginTop: 20,
+    marginBottom: 30,
+  },
+
+  btnPrimary: {
+    flex: 2,
+    backgroundColor: "#10B981",
+    padding: 18,
+    borderRadius: 18,
+    alignItems: "center",
+  },
+
+  btnSecondary: {
+    flex: 1,
+    backgroundColor: "#F1F5F9",
+    padding: 18,
+    borderRadius: 18,
+    alignItems: "center",
+    marginRight: 12,
+  },
+
+  btnPrimaryText: { color: "#FFF", fontWeight: "700" },
+  btnSecondaryText: { color: "#64748B", fontWeight: "700" },
 });
