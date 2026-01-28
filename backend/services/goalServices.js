@@ -9,6 +9,7 @@ class GoalServices {
     target_amount,
     target_date,
     description,
+    icon_name,
   }) {
     // Create new goal in DB
     const newGoal = await GoalModel.createGoal({
@@ -17,6 +18,7 @@ class GoalServices {
       target_amount,
       target_date,
       description,
+      icon_name,
     });
 
     // Invalidate Redis cache
@@ -32,7 +34,7 @@ class GoalServices {
     if (cached) return JSON.parse(cached);
 
     // If not in cache, fetch from DB
-    const goal = await GoalModel.getAllgoal(userId);
+    const goal = await GoalModel.getAllGoals(userId);
     await redisClient.setEx(`goal:${userId}`, 300, JSON.stringify(goal));
     return goal;
   }
