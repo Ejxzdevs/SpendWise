@@ -9,10 +9,11 @@ class GoalModel {
     target_amount,
     target_date,
     description,
+    icon_name,
   }) {
     const sql = `
-      INSERT INTO goals (user_id, goal_name, target_amount, target_date, description)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO goals (user_id, goal_name, target_amount, target_date, description,icon_name)
+      VALUES ($1, $2, $3, $4, $5 ,$6)
       RETURNING *;
     `;
     try {
@@ -22,6 +23,7 @@ class GoalModel {
         target_amount,
         target_date,
         description,
+        icon_name,
       ]);
       return result.rows[0];
     } catch (error) {
