@@ -72,6 +72,28 @@ export const addMoneyToGoal = async (
   }
 };
 
+// update a specific goal
+export const updateGoal = async (
+  goal_id: string,
+  updateData: Partial<GoalPayload>,
+): Promise<GoalResponse> => {
+  try {
+    const token = await getUserToken();
+    const response = await apiClient.put(`/goal/${goal_id}`, updateData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response && error.response.data) {
+      throw new Error(error.response.data.message);
+    } else {
+      throw new Error("Network or unknown error");
+    }
+  }
+};
+
 // delete a specific goal
 export const deleteGoal = async (goal_id: string): Promise<GoalResponse> => {
   try {
