@@ -4,7 +4,8 @@ import goalController from "../controllers/goalController.js";
 
 const router = Router();
 
-router.post("/create", authenticateUser, goalController.createGoal);
-router.get("/all", authenticateUser, goalController.getAllGoals);
+router.post("/", authenticateUser, goalController.createGoal);
+router.get("/", authenticateUser, goalController.getAllGoals);
+router.patch("/:id", authenticateUser, goalController.addMoney);
 
 export default router;
