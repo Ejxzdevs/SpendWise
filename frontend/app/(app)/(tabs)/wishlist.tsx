@@ -17,6 +17,7 @@ import {
   saveGoal,
   fetchGoals,
   addMoneyToGoal,
+  updateGoal,
   deleteGoal,
 } from "@/services/goalServices";
 import {
@@ -107,6 +108,9 @@ export default function GoalsScreen() {
     setDescription("");
     setSelectedIcon(null);
     setModalVisible(false);
+
+    // reset edit mode
+    setSelectedGoalId(null);
   };
 
   // ADD GOAL MODAL FUNCTIONALITY AND STATE
@@ -165,6 +169,51 @@ export default function GoalsScreen() {
     //     },
     //   },
     // ]);
+  };
+
+  // handle edit goal (opens create goal modal with pre-filled data)
+  const isEditMode = selectedGoalId !== null;
+
+  const handleEditGoalModal = (goal_id: string) => {
+    const goalToEdit = goals.find((g) => g.goal_id === goal_id);
+    if (goalToEdit) {
+      setGoal(goalToEdit.goal_name);
+      setTargetAmount(goalToEdit.target_amount.toString());
+      const targetDateObj = new Date(goalToEdit.target_date);
+      const month = (targetDateObj.getMonth() + 1).toString().padStart(2, "0");
+      const year = targetDateObj.getFullYear().toString();
+      setTargetDate(`${month} / ${year}`);
+      setSelectedGoalId(goalToEdit.goal_id);
+      setDescription(goalToEdit.description || "");
+      setSelectedIcon(goalToEdit.icon_name || null);
+      setModalVisible(true);
+    }
+  };
+
+  const handleSaveUpdateGoal = async () => {
+    const formattedDate = formatDateForPayload(targetDate);
+
+    if (!goal || !targetAmount || !formattedDate || !selectedGoalId) {
+      Alert.alert(
+        "Missing Info",
+        "Please fill in the goal, amount, and valid date.",
+      );
+      return;
+    }
+    const updateData: Partial<GoalPayload> = {
+      goal_name: goal,
+      target_amount: parseFloat(targetAmount),
+      target_date: formattedDate,
+      description,
+      icon_name: selectedIcon ?? undefined,
+    };
+    try {
+      await updateGoal(selectedGoalId, updateData);
+      closeModal();
+      loadGoals();
+    } catch {
+      Alert.alert("Error", "Failed to update goal.");
+    }
   };
 
   // RENDER GOAL ITEM
@@ -231,7 +280,7 @@ export default function GoalsScreen() {
               styles.button,
               pressed && styles.buttonPressed,
             ]}
-            onPress={() => console.log("Edit pressed")}
+            onPress={() => handleEditGoalModal(item.goal_id)}
           >
             <Ionicons name="create-outline" size={20} color="#120fda" />
           </Pressable>
@@ -357,8 +406,13 @@ export default function GoalsScreen() {
                   <Pressable style={styles.btnSecondary} onPress={closeModal}>
                     <Text style={styles.btnSecondaryText}>Cancel</Text>
                   </Pressable>
-                  <Pressable style={styles.btnPrimary} onPress={handleSaveGoal}>
-                    <Text style={styles.btnPrimaryText}>Create Goal</Text>
+                  <Pressable
+                    style={styles.btnPrimary}
+                    onPress={isEditMode ? handleSaveUpdateGoal : handleSaveGoal}
+                  >
+                    <Text style={styles.btnPrimaryText}>
+                      {isEditMode ? "Save" : "Create Goal"}
+                    </Text>
                   </Pressable>
                 </View>
               }
