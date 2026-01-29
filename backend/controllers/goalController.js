@@ -58,5 +58,17 @@ class GoalController {
       res.status(500).json({ success: false, message: error.message });
     }
   };
+
+  // DELETE GOAL
+  delGoal = async (req, res) => {
+    const userId = req.user.id;
+    const goalId = req.params.id;
+    try {
+      await GoalServices.deleteGoal(userId, goalId);
+      res.status(200).json({ success: true, message: "Goal deleted" });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  };
 }
 export default new GoalController();
