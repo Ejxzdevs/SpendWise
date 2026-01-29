@@ -59,6 +59,27 @@ class GoalController {
     }
   };
 
+  // UPDATE GOAL
+  updateGoal = async (req, res) => {
+    const userId = req.user.id;
+    const goalId = req.params.id;
+    const { goal_name, target_amount, target_date, description, icon_name } =
+      req.body;
+
+    try {
+      await GoalServices.updateGoal(userId, goalId, {
+        goal_name,
+        target_amount,
+        target_date,
+        description,
+        icon_name,
+      });
+      res.status(200).json({ success: true, message: "Goal updated" });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  };
+
   // DELETE GOAL
   delGoal = async (req, res) => {
     const userId = req.user.id;
