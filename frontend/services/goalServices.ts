@@ -2,15 +2,13 @@ import apiClient from "@/utils/apiClient";
 import { getUserToken } from "@/utils/authStorage";
 import {
   GoalPayload,
-  PayloadGoalResponse,
+  GoalResponse,
   FetchGoalsResponse,
   addMoneyToGoalPayload,
 } from "@/types/goal";
 
 // save Goal data to the backend
-export const saveGoal = async (
-  payload: GoalPayload,
-): Promise<PayloadGoalResponse> => {
+export const saveGoal = async (payload: GoalPayload): Promise<GoalResponse> => {
   try {
     const token = await getUserToken();
     const response = await apiClient.post("/goal", payload, {
@@ -50,10 +48,9 @@ export const fetchGoals = async (): Promise<FetchGoalsResponse> => {
 };
 
 // add money to a specific goal
-
 export const addMoneyToGoal = async (
   payload: addMoneyToGoalPayload,
-): Promise<PayloadGoalResponse> => {
+): Promise<GoalResponse> => {
   try {
     const token = await getUserToken();
     const response = await apiClient.patch(
@@ -65,6 +62,25 @@ export const addMoneyToGoal = async (
         },
       },
     );
+    return response.data;
+  } catch (error: any) {
+    if (error.response && error.response.data) {
+      throw new Error(error.response.data.message);
+    } else {
+      throw new Error("Network or unknown error");
+    }
+  }
+};
+
+// delete a specific goal
+export const deleteGoal = async (goal_id: string): Promise<GoalResponse> => {
+  try {
+    const token = await getUserToken();
+    const response = await apiClient.delete(`/goal/${goal_id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
     return response.data;
   } catch (error: any) {
     if (error.response && error.response.data) {
