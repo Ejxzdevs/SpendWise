@@ -1,4 +1,4 @@
-import React, { useState, useEffect, act } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -13,8 +13,14 @@ import {
   Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { saveGoal, fetchGoals } from "@/services/goalServices";
-import { iconOptions, IconName, GoalPayload, GoalItems } from "@/types/goal";
+import { saveGoal, fetchGoals, addMoneyToGoal } from "@/services/goalServices";
+import {
+  iconOptions,
+  IconName,
+  GoalPayload,
+  GoalItems,
+  addMoneyToGoalPayload,
+} from "@/types/goal";
 
 const { width } = Dimensions.get("window");
 
@@ -101,15 +107,28 @@ export default function GoalsScreen() {
   // ADD GOAL MODAL FUNCTIONALITY AND STATE
   const [amount, setAmount] = useState("");
   const [modalAddMoneyVisible, setModalAddMoneyVisible] = useState(false);
+  const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
 
   // ADD MONEY FUNCTIONALITY
-  const handleSaveAddMoney = () => {
-    if (!amount) {
-      Alert.alert("Missing Info", "Please enter an amount to add.");
+  const handleSaveAddMoney = async () => {
+    if (!amount || !selectedGoalId) {
+      Alert.alert("Missing Info", "Please enter an amount.");
       return;
     }
-    console.log("Amount to add:", amount);
-    handCloseAddMoneyModal();
+
+    try {
+      const payload: addMoneyToGoalPayload = {
+        goal_id: selectedGoalId,
+        amount: parseFloat(amount),
+      };
+
+      await addMoneyToGoal(payload);
+      loadGoals();
+      setAmount("");
+      setModalAddMoneyVisible(false);
+    } catch {
+      Alert.alert("Error", "Failed to add money to goal.");
+    }
   };
 
   // CLOSE ADD MONEY MODAL
@@ -168,7 +187,10 @@ export default function GoalsScreen() {
               styles.button,
               pressed && styles.buttonPressed,
             ]}
-            onPress={() => setModalAddMoneyVisible(true)}
+            onPress={() => {
+              setModalAddMoneyVisible(true);
+              setSelectedGoalId(item.goal_id);
+            }}
           >
             <Ionicons name="add-circle-outline" size={20} color="#1ad358" />
           </Pressable>
@@ -252,6 +274,7 @@ export default function GoalsScreen() {
                     style={styles.input}
                     value={goal}
                     onChangeText={setGoal}
+                    placeholderTextColor="#9CA3AF"
                     placeholder="e.g. New Laptop"
                   />
 
@@ -260,6 +283,7 @@ export default function GoalsScreen() {
                       <Text style={styles.inputLabel}>Amount (₱)</Text>
                       <TextInput
                         style={styles.input}
+                        placeholderTextColor="#9CA3AF"
                         placeholder="0.00"
                         value={targetAmount}
                         onChangeText={setTargetAmount}
@@ -275,6 +299,7 @@ export default function GoalsScreen() {
                         maxLength={9}
                         value={targetDate}
                         onChangeText={handleDateChange}
+                        placeholderTextColor="#9CA3AF"
                       />
                     </View>
                   </View>
@@ -323,8 +348,8 @@ export default function GoalsScreen() {
             <Text style={styles.modalTitle}>Add Amount</Text>
             <TextInput
               style={styles.input}
-              value={goal}
-              onChangeText={setGoal}
+              value={amount}
+              onChangeText={setAmount}
               placeholder="0.00"
             />
 
