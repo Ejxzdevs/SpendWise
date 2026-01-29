@@ -49,6 +49,15 @@ class GoalServices {
     return updatedGoal;
   }
 
+  // UPDATE GOAL + invalidate cache
+  static async updateGoal(userId, goalId, updateData) {
+    // Update goal in DB
+    const updatedGoal = await GoalModel.updateGoal(goalId, updateData);
+    // Invalidate Redis cache
+    await redisClient.del(`goal:${userId}`);
+    return updatedGoal;
+  }
+
   // DELETE GOAL + invalidate cache
   static async deleteGoal(userId, goalId) {
     // Delete goal from DB
