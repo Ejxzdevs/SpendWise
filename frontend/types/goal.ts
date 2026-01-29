@@ -20,7 +20,7 @@ export interface BaseGoal {
 
 export interface GoalPayload extends BaseGoal {}
 
-export type PayloadGoalResponse =
+export type GoalResponse =
   | {
       success: true;
       message: string;
