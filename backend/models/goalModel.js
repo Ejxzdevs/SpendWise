@@ -63,6 +63,41 @@ class GoalModel {
     }
   }
 
+  // Update goal
+  static async updateGoal(goalId, updateData) {
+    const fields = [];
+    const values = [];
+    let index = 1;
+
+    // Only include keys with non-undefined values
+    for (const key in updateData) {
+      if (updateData[key] !== undefined) {
+        fields.push(`${key} = $${index}`);
+        values.push(updateData[key]);
+        index++;
+      }
+    }
+
+    if (fields.length === 0) {
+      throw new Error("No fields to update");
+    }
+
+    const sql = `
+    UPDATE goals
+    SET ${fields.join(", ")}
+    WHERE goal_id = $${index}
+    RETURNING *;
+  `;
+
+    try {
+      const result = await _query(sql, [...values, goalId]);
+      return result.rows[0];
+    } catch (error) {
+      console.error(error);
+      throw new Error("Error updating goal");
+    }
+  }
+
   // Delete goal
   static async deleteGoal(goalId) {
     const sql = `
