@@ -1,6 +1,7 @@
 import GoalServices from "../services/goalServices.js";
 
 class GoalController {
+  // CREATE GOAL
   createGoal = async (req, res) => {
     const userId = req.user.id;
     const { goal_name, target_amount, target_date, description, icon_name } =
@@ -28,6 +29,7 @@ class GoalController {
     }
   };
 
+  // GET ALL GOALS
   getAllGoals = async (req, res) => {
     const userId = req.user.id;
     try {
@@ -37,6 +39,24 @@ class GoalController {
       res.status(500).json({ success: false, message: error.message });
     }
   };
-}
 
+  // ADD MONEY TO GOAL
+  addMoney = async (req, res) => {
+    const userId = req.user.id;
+    const goalId = req.params.id;
+    const { amount } = req.body;
+    if (!amount || amount <= 0) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid amount" });
+    }
+
+    try {
+      await GoalServices.addMoneyToGoal(userId, goalId, amount);
+      res.status(200).json({ success: true, message: "Amount added to goal" });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  };
+}
 export default new GoalController();
