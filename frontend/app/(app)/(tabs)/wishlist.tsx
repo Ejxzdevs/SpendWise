@@ -13,7 +13,12 @@ import {
   Dimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { saveGoal, fetchGoals, addMoneyToGoal } from "@/services/goalServices";
+import {
+  saveGoal,
+  fetchGoals,
+  addMoneyToGoal,
+  deleteGoal,
+} from "@/services/goalServices";
 import {
   iconOptions,
   IconName,
@@ -137,6 +142,31 @@ export default function GoalsScreen() {
     setModalAddMoneyVisible(false);
   };
 
+  // handle delete goal
+  const handleDeleteGoal = async (goal_id: string) => {
+    try {
+      await deleteGoal(goal_id);
+      loadGoals();
+    } catch (error) {
+      Alert.alert("Error", "Failed to delete goal.");
+    }
+    // Alert.alert("Delete Goal", "Are you sure you want to delete this goal?", [
+    //   { text: "Cancel", style: "cancel" },
+    //   {
+    //     text: "Delete",
+    //     style: "destructive",
+    //     onPress: async () => {
+    //       try {
+    //         await deleteGoal(goal_id);
+    //         loadGoals();
+    //       } catch (error) {
+    //         Alert.alert("Error", "Failed to delete goal.");
+    //       }
+    //     },
+    //   },
+    // ]);
+  };
+
   // RENDER GOAL ITEM
   const renderGoal = ({ item }: { item: GoalItems }) => {
     const progress = Math.min(
@@ -212,7 +242,7 @@ export default function GoalsScreen() {
               styles.button,
               pressed && styles.buttonPressed,
             ]}
-            onPress={() => console.log("Delete pressed")}
+            onPress={() => handleDeleteGoal(item.goal_id)}
           >
             <Ionicons name="trash-outline" size={20} color="#d11313" />
           </Pressable>
