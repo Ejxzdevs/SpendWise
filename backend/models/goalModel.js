@@ -45,6 +45,23 @@ class GoalModel {
       throw new Error("Error fetching expenses");
     }
   }
+
+  // Add money to goal
+  static async addMoneyToGoal(goalId, amount) {
+    const sql = `
+      UPDATE goals
+      SET current_amount = current_amount + $1
+      WHERE goal_id = $2
+      RETURNING *;
+    `;
+    try {
+      const result = await _query(sql, [amount, goalId]);
+      return result.rows[0];
+    } catch (error) {
+      console.error(error);
+      throw new Error("Error adding money to goal");
+    }
+  }
 }
 
 export default GoalModel;
