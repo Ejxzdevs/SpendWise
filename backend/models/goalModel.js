@@ -62,6 +62,19 @@ class GoalModel {
       throw new Error("Error adding money to goal");
     }
   }
+
+  // Delete goal
+  static async deleteGoal(goalId) {
+    const sql = `
+      DELETE FROM goals WHERE goal_id = $1;
+    `;
+    try {
+      await _query(sql, [goalId]);
+    } catch (error) {
+      console.error(error);
+      throw new Error("Error deleting goal");
+    }
+  }
 }
 
 export default GoalModel;
