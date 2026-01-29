@@ -38,6 +38,15 @@ class GoalServices {
     await redisClient.setEx(`goal:${userId}`, 300, JSON.stringify(goal));
     return goal;
   }
+
+  // ADD MONEY TO GOAL + invalidate cache
+  static async addMoneyToGoal(userId, goalId, amount) {
+    // Add money to goal in DB
+    const updatedGoal = await GoalModel.addMoneyToGoal(goalId, amount);
+    // Invalidate Redis cache
+    await redisClient.del(`goal:${userId}`);
+    return updatedGoal;
+  }
 }
 
 export default GoalServices;
