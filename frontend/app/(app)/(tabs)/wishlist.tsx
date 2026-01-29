@@ -19,17 +19,22 @@ import { iconOptions, IconName, GoalPayload, GoalItems } from "@/types/goal";
 const { width } = Dimensions.get("window");
 
 export default function GoalsScreen() {
-  const [modalVisible, setModalVisible] = useState(false);
-  const [goals, setGoals] = useState<GoalItems[]>([]);
+  // utils temporary date formatter
+  const handleDateChange = (text: string) => {
+    let cleaned = text.replace(/\D/g, "");
+    if (cleaned.length > 2) {
+      cleaned = `${cleaned.slice(0, 2)} / ${cleaned.slice(2, 6)}`;
+    }
+    setTargetDate(cleaned);
+  };
 
-  // Form State
-  const [goal, setGoal] = useState("");
-  const [targetAmount, setTargetAmount] = useState("");
-  const [targetDate, setTargetDate] = useState("");
-  const [description, setDescription] = useState("");
-  const [selectedIcon, setSelectedIcon] = useState<IconName | null>(null);
+  const formatDateForPayload = (dateString: string) => {
+    const [month, year] = dateString.split(" / ");
+    if (!month || !year || year.length < 4) return null;
+    return `${year}-${month.padStart(2, "0")}-01`;
+  };
 
-  /** ---------------- LOAD GOALS ---------------- */
+  // FETCH GOALS
   const loadGoals = async () => {
     try {
       const response = await fetchGoals();
@@ -45,22 +50,16 @@ export default function GoalsScreen() {
     loadGoals();
   }, []);
 
-  /** ---------------- DATE FORMAT ---------------- */
-  const handleDateChange = (text: string) => {
-    let cleaned = text.replace(/\D/g, "");
-    if (cleaned.length > 2) {
-      cleaned = `${cleaned.slice(0, 2)} / ${cleaned.slice(2, 6)}`;
-    }
-    setTargetDate(cleaned);
-  };
+  // CREATE GOAL MODAL FUNCTIONALITY AND STATE
+  const [modalVisible, setModalVisible] = useState(false);
+  const [goals, setGoals] = useState<GoalItems[]>([]);
+  const [goal, setGoal] = useState("");
+  const [targetAmount, setTargetAmount] = useState("");
+  const [targetDate, setTargetDate] = useState("");
+  const [description, setDescription] = useState("");
+  const [selectedIcon, setSelectedIcon] = useState<IconName | null>(null);
 
-  const formatDateForPayload = (dateString: string) => {
-    const [month, year] = dateString.split(" / ");
-    if (!month || !year || year.length < 4) return null;
-    return `${year}-${month.padStart(2, "0")}-01`;
-  };
-
-  /** ---------------- SAVE GOAL ---------------- */
+  // HANDLE SAVE GOAL
   const handleSaveGoal = async () => {
     const formattedDate = formatDateForPayload(targetDate);
 
@@ -89,6 +88,7 @@ export default function GoalsScreen() {
     }
   };
 
+  // CLOSE CREATE GOAL MODAL
   const closeModal = () => {
     setGoal("");
     setTargetAmount("");
@@ -98,7 +98,27 @@ export default function GoalsScreen() {
     setModalVisible(false);
   };
 
-  /** ---------------- RENDER GOAL CARD ---------------- */
+  // ADD GOAL MODAL FUNCTIONALITY AND STATE
+  const [amount, setAmount] = useState("");
+  const [modalAddMoneyVisible, setModalAddMoneyVisible] = useState(false);
+
+  // ADD MONEY FUNCTIONALITY
+  const handleSaveAddMoney = () => {
+    if (!amount) {
+      Alert.alert("Missing Info", "Please enter an amount to add.");
+      return;
+    }
+    console.log("Amount to add:", amount);
+    handCloseAddMoneyModal();
+  };
+
+  // CLOSE ADD MONEY MODAL
+  const handCloseAddMoneyModal = () => {
+    setAmount("");
+    setModalAddMoneyVisible(false);
+  };
+
+  // RENDER GOAL ITEM
   const renderGoal = ({ item }: { item: GoalItems }) => {
     const progress = Math.min(
       (item.current_amount / item.target_amount) * 100,
@@ -148,7 +168,7 @@ export default function GoalsScreen() {
               styles.button,
               pressed && styles.buttonPressed,
             ]}
-            onPress={() => console.log("Add pressed")}
+            onPress={() => setModalAddMoneyVisible(true)}
           >
             <Ionicons name="add-circle-outline" size={20} color="#1ad358" />
           </Pressable>
@@ -210,7 +230,7 @@ export default function GoalsScreen() {
         <Ionicons name="add" size={32} color="#FFF" />
       </Pressable>
 
-      {/* MODAL */}
+      {/* CREATE GOAL MODAL */}
       <Modal transparent animationType="fade" visible={modalVisible}>
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -240,7 +260,7 @@ export default function GoalsScreen() {
                       <Text style={styles.inputLabel}>Amount (₱)</Text>
                       <TextInput
                         style={styles.input}
-                        keyboardType="decimal-pad"
+                        placeholder="0.00"
                         value={targetAmount}
                         onChangeText={setTargetAmount}
                       />
@@ -291,12 +311,42 @@ export default function GoalsScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      {/* ADD MONEY MODAL */}
+      <Modal transparent animationType="fade" visible={modalAddMoneyVisible}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Add Amount</Text>
+            <TextInput
+              style={styles.input}
+              value={goal}
+              onChangeText={setGoal}
+              placeholder="0.00"
+            />
+
+            <View style={styles.buttonRow}>
+              <Pressable
+                style={styles.btnSecondary}
+                onPress={handCloseAddMoneyModal}
+              >
+                <Text style={styles.btnSecondaryText}>Cancel</Text>
+              </Pressable>
+              <Pressable style={styles.btnPrimary} onPress={handleSaveAddMoney}>
+                <Text style={styles.btnPrimaryText}>Save</Text>
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
 
-/* ---------------- STYLES ---------------- */
-
+// STYLES
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FBFDFF" },
 
@@ -418,7 +468,7 @@ const styles = StyleSheet.create({
   modalHandle: {
     width: 40,
     height: 5,
-    backgroundColor: "#E2E8F0",
+    backgroundColor: "#0dd137",
     borderRadius: 10,
     alignSelf: "center",
     marginBottom: 20,
@@ -426,7 +476,7 @@ const styles = StyleSheet.create({
 
   modalTitle: {
     fontSize: 24,
-    fontWeight: "800",
+    fontWeight: "700",
     textAlign: "center",
     marginBottom: 24,
   },
