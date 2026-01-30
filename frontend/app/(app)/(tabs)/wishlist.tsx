@@ -20,31 +20,37 @@ import {
   updateGoal,
   deleteGoal,
 } from "@/services/goalServices";
-import {
-  iconOptions,
-  IconName,
-  GoalPayload,
-  GoalItems,
-  addMoneyToGoalPayload,
-} from "@/types/goal";
+import { iconOptions, IconName, GoalPayload, GoalItems } from "@/types/goal";
 
 const { width } = Dimensions.get("window");
 
 export default function GoalsScreen() {
   const [goals, setGoals] = useState<GoalItems[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
-  const [goal, setGoal] = useState("");
+  const [modalAddMoneyVisible, setModalAddMoneyVisible] = useState(false);
+  const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
+
+  // --- FORM STATES ---
+  const [goalName, setGoalName] = useState("");
   const [targetAmount, setTargetAmount] = useState("");
   const [targetDate, setTargetDate] = useState("");
   const [description, setDescription] = useState("");
   const [selectedIcon, setSelectedIcon] = useState<IconName | null>(null);
-  const [amount, setAmount] = useState("");
-  const [modalAddMoneyVisible, setModalAddMoneyVisible] = useState(false);
-  const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
 
-  // --- CALCULATIONS FOR SUMMARY ---
+  // --- ADD MONEY STATES ---
+  const [addAmount, setAddAmount] = useState("");
+  const [currentGoalAmount, setCurrentGoalAmount] = useState(0);
+  const [currentGoalTarget, setCurrentGoalTarget] = useState(0);
+
+  // --- INLINE ERROR STATES ---
+  const [nameError, setNameError] = useState("");
+  const [amountError, setAmountError] = useState("");
+  const [dateError, setDateError] = useState("");
+  const [descError, setDescError] = useState("");
+  const [addMoneyError, setAddMoneyError] = useState("");
+
+  // --- CALCULATIONS ---
   const totals = useMemo(() => {
-    // Use Number() to force strings into actual math-ready numbers
     const totalCurrent = goals.reduce(
       (acc, g) => acc + Number(g.current_amount || 0),
       0,
@@ -53,37 +59,28 @@ export default function GoalsScreen() {
       (acc, g) => acc + Number(g.target_amount || 0),
       0,
     );
-
-    const overallProgress =
-      totalTarget > 0 ? (totalCurrent / totalTarget) * 100 : 0;
+    const progress = totalTarget > 0 ? (totalCurrent / totalTarget) * 100 : 0;
 
     return {
       current: totalCurrent,
       target: totalTarget,
-      progress: Math.min(overallProgress, 100),
+      progress: Math.min(progress, 100),
     };
   }, [goals]);
 
-  // --- UTILS ---
-  const handleDateChange = (text: string) => {
-    let cleaned = text.replace(/\D/g, "");
-    if (cleaned.length > 2) {
-      cleaned = `${cleaned.slice(0, 2)} / ${cleaned.slice(2, 6)}`;
-    }
-    setTargetDate(cleaned);
-  };
-
-  const formatDateForPayload = (dateString: string) => {
-    const [month, year] = dateString.split(" / ");
-    if (!month || !year || year.length < 4) return null;
-    return `${year}-${month.padStart(2, "0")}-01`;
-  };
-
+  // --- API HANDLERS ---
   const loadGoals = async () => {
     try {
       const response = await fetchGoals();
       if (response.success) {
-        setGoals(response.data);
+        // Strict Numeric Sanitization
+        const sanitized = response.data.map((item: any) => ({
+          ...item,
+          current_amount: Number(item.current_amount || 0),
+          target_amount: Number(item.target_amount || 0),
+          description: item.description || "",
+        }));
+        setGoals(sanitized);
       }
     } catch (error) {
       console.error("Error fetching goals:", error);
@@ -94,185 +91,235 @@ export default function GoalsScreen() {
     loadGoals();
   }, []);
 
-  const handleSaveGoal = async () => {
-    const formattedDate = formatDateForPayload(targetDate);
-    if (!goal || !targetAmount || !formattedDate) {
-      Alert.alert(
-        "Missing Info",
-        "Please fill in the goal, amount, and valid date.",
-      );
-      return;
+  // --- UTILS ---
+  const handleDateChange = (text: string) => {
+    setDateError("");
+    let cleaned = (text || "").replace(/\D/g, "");
+    if (cleaned.length > 2) {
+      cleaned = `${cleaned.slice(0, 2)} / ${cleaned.slice(2, 6)}`;
     }
-    const payload: GoalPayload = {
-      goal_name: goal,
-      target_amount: parseFloat(targetAmount),
-      target_date: formattedDate,
-      description,
-      icon_name: selectedIcon ?? undefined,
-    };
-    try {
-      await saveGoal(payload);
-      closeModal();
-      loadGoals();
-    } catch {
-      Alert.alert("Error", "Failed to save goal.");
+    setTargetDate(cleaned);
+  };
+
+  const validateGoalForm = () => {
+    let valid = true;
+    // Using ?.length and || "" to prevent "null" property errors
+    if (!goalName?.trim()) {
+      setNameError("Goal name is required");
+      valid = false;
     }
+    if (!targetAmount || Number(targetAmount) <= 0) {
+      setAmountError("Enter a valid target");
+      valid = false;
+    }
+    if ((targetDate || "").length < 9) {
+      setDateError("Enter valid date (MM / YYYY)");
+      valid = false;
+    }
+    if ((description || "").length > 80) {
+      setDescError("Max 80 characters");
+      valid = false;
+    }
+    if (targetAmount && isNaN(Number(targetAmount))) {
+      setAmountError("Enter a valid number");
+      valid = false;
+    }
+    if (currentGoalAmount > Number(targetAmount)) {
+      setAmountError("Target cannot be less than current amount");
+      valid = false;
+    }
+    return valid;
   };
 
   const closeModal = () => {
-    setGoal("");
+    setModalVisible(false);
+    setGoalName("");
     setTargetAmount("");
     setTargetDate("");
     setDescription("");
     setSelectedIcon(null);
-    setModalVisible(false);
     setSelectedGoalId(null);
+    setNameError("");
+    setAmountError("");
+    setDateError("");
+    setDescError("");
   };
 
-  const handleSaveAddMoney = async () => {
-    if (!amount || !selectedGoalId) {
-      Alert.alert("Missing Info", "Please enter an amount.");
-      return;
-    }
-    try {
-      const payload: addMoneyToGoalPayload = {
-        goal_id: selectedGoalId,
-        amount: parseFloat(amount),
-      };
-      await addMoneyToGoal(payload);
-      loadGoals();
-      setAmount("");
-      setModalAddMoneyVisible(false);
-    } catch {
-      Alert.alert("Error", "Failed to add money to goal.");
-    }
-  };
+  // --- SAVE GOAL HANDLER ---
+  const handleSaveGoal = async () => {
+    if (!validateGoalForm()) return;
+    const [month, year] = targetDate.split(" / ");
+    const formattedDate = `${year}-${month.padStart(2, "0")}-01`;
 
-  const handCloseAddMoneyModal = () => {
-    setAmount("");
-    setModalAddMoneyVisible(false);
-  };
-
-  const handleDeleteGoal = async (goal_id: string) => {
-    try {
-      await deleteGoal(goal_id);
-      loadGoals();
-    } catch (error) {
-      Alert.alert("Error", "Failed to delete goal.");
-    }
-  };
-
-  const isEditMode = selectedGoalId !== null;
-
-  const handleEditGoalModal = (goal_id: string) => {
-    const goalToEdit = goals.find((g) => g.goal_id === goal_id);
-    if (goalToEdit) {
-      setGoal(goalToEdit.goal_name);
-      setTargetAmount(goalToEdit.target_amount.toString());
-      const targetDateObj = new Date(goalToEdit.target_date);
-      const month = (targetDateObj.getMonth() + 1).toString().padStart(2, "0");
-      const year = targetDateObj.getFullYear().toString();
-      setTargetDate(`${month} / ${year}`);
-      setSelectedGoalId(goalToEdit.goal_id);
-      setDescription(goalToEdit.description || "");
-      setSelectedIcon(goalToEdit.icon_name || null);
-      setModalVisible(true);
-    }
-  };
-
-  const handleSaveUpdateGoal = async () => {
-    const formattedDate = formatDateForPayload(targetDate);
-    if (!goal || !targetAmount || !formattedDate || !selectedGoalId) {
-      Alert.alert(
-        "Missing Info",
-        "Please fill in the goal, amount, and valid date.",
-      );
-      return;
-    }
-    const updateData: Partial<GoalPayload> = {
-      goal_name: goal,
+    const payload: GoalPayload = {
+      goal_name: goalName,
       target_amount: parseFloat(targetAmount),
       target_date: formattedDate,
-      description,
+      description: description || "",
       icon_name: selectedIcon ?? undefined,
     };
+
     try {
-      await updateGoal(selectedGoalId, updateData);
-      closeModal();
+      if (selectedGoalId) {
+        await updateGoal(selectedGoalId, payload);
+      } else {
+        await saveGoal(payload);
+      }
       loadGoals();
+      closeModal();
     } catch {
-      Alert.alert("Error", "Failed to update goal.");
+      Alert.alert("Error", "Could not save goal.");
     }
   };
 
+  // --- ADD MONEY HANDLERS ---
+  const handleSaveAddMoney = async () => {
+    const amountVal = parseFloat(addAmount);
+    if (isNaN(amountVal) || amountVal <= 0) {
+      setAddMoneyError("Enter a valid amount");
+      return;
+    }
+    if (amountVal + currentGoalAmount > currentGoalTarget) {
+      setAddMoneyError("Amount exceeds target");
+      return;
+    }
+
+    try {
+      await addMoneyToGoal({ goal_id: selectedGoalId!, amount: amountVal });
+      loadGoals();
+      setModalAddMoneyVisible(false);
+      setAddAmount("");
+      setAddMoneyError("");
+    } catch {
+      Alert.alert("Error", "Failed to add money.");
+    }
+  };
+
+  // --- RENDER ITEM ---
   const renderGoal = ({ item }: { item: GoalItems }) => {
-    const progress = Math.min(
-      (item.current_amount / item.target_amount) * 100,
-      100,
-    );
+    const cur = Number(item.current_amount || 0);
+    const tar = Number(item.target_amount || 0);
+    const isCompleted = cur >= tar;
+    const progress = tar > 0 ? Math.min((cur / tar) * 100, 100) : 0;
 
     return (
       <View style={styles.card}>
         <View style={styles.cardTop}>
           <View style={styles.iconContainer}>
             <Ionicons
-              name={item.icon_name || "rocket"}
+              name={
+                isCompleted ? "checkmark-circle" : item.icon_name || "rocket"
+              }
               size={22}
-              color="#10B981"
+              color={isCompleted ? "#10B981" : "#3B82F6"}
             />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.goalName}>{item.goal_name}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Text style={styles.goalName}>{item.goal_name}</Text>
+              <View
+                style={[
+                  styles.statusBadge,
+                  { backgroundColor: isCompleted ? "#D1FAE5" : "#FEF3C7" },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.statusText,
+                    { color: isCompleted ? "#065F46" : "#92400E" },
+                  ]}
+                >
+                  {isCompleted ? "Completed" : "Incomplete"}
+                </Text>
+              </View>
+            </View>
             <Text style={styles.goalTarget}>
-              Target: ₱{item.target_amount.toLocaleString()}
+              Target: ₱{tar.toLocaleString()}
             </Text>
           </View>
           <Text style={styles.percentageText}>{Math.round(progress)}%</Text>
         </View>
+
+        {item.description ? (
+          <View style={styles.descriptionContainer}>
+            <Text style={styles.descriptionText}>{item.description}</Text>
+          </View>
+        ) : null}
+
         <View style={styles.progressTrack}>
-          <View style={[styles.progressBar, { width: `${progress}%` }]} />
+          <View
+            style={[
+              styles.progressBar,
+              {
+                width: `${progress}%`,
+                backgroundColor: isCompleted ? "#10B981" : "#3B82F6",
+              },
+            ]}
+          />
         </View>
+
         <View style={styles.cardBottom}>
-          <Text style={styles.currentAmount}>
-            ₱{item.current_amount.toLocaleString()}
-          </Text>
+          <Text style={styles.currentAmount}>₱{cur.toLocaleString()}</Text>
           <View style={styles.dateBadge}>
             <Ionicons name="calendar-outline" size={12} color="#64748B" />
             <Text style={styles.dateText}>
-              {new Date(item.target_date).toLocaleDateString()}
+              {item.target_date
+                ? new Date(item.target_date).toLocaleDateString()
+                : "No Date"}
             </Text>
           </View>
         </View>
+
         <View style={styles.actionContainer}>
+          {/* // Add Money Button */}
+          {!isCompleted && (
+            <Pressable
+              style={styles.button}
+              onPress={() => {
+                setSelectedGoalId(item.goal_id);
+                setCurrentGoalAmount(cur);
+                setCurrentGoalTarget(tar);
+                setModalAddMoneyVisible(true);
+              }}
+            >
+              <Ionicons name="add-circle-outline" size={24} color="#10B981" />
+            </Pressable>
+          )}
+
+          {/* // Edit Button */}
           <Pressable
-            style={({ pressed }) => [
-              styles.button,
-              pressed && styles.buttonPressed,
-            ]}
+            style={styles.button}
             onPress={() => {
-              setModalAddMoneyVisible(true);
+              setGoalName(item.goal_name || "");
+              setTargetAmount((item.target_amount || 0).toString());
+              setCurrentGoalAmount(Number(item.current_amount || 0));
+              const d = new Date(item.target_date);
+              setTargetDate(
+                `${(d.getMonth() + 1).toString().padStart(2, "0")} / ${d.getFullYear()}`,
+              );
+              setDescription(item.description || "");
+              setSelectedIcon(item.icon_name || null);
               setSelectedGoalId(item.goal_id);
+              setModalVisible(true);
             }}
           >
-            <Ionicons name="add-circle-outline" size={20} color="#1ad358" />
+            <Ionicons name="create-outline" size={24} color="#3B82F6" />
           </Pressable>
+
+          {/* // Delete Button */}
           <Pressable
-            style={({ pressed }) => [
-              styles.button,
-              pressed && styles.buttonPressed,
-            ]}
-            onPress={() => handleEditGoalModal(item.goal_id)}
+            style={styles.button}
+            onPress={() => {
+              Alert.alert("Delete", "Are you sure?", [
+                { text: "No" },
+                {
+                  text: "Yes",
+                  onPress: () => deleteGoal(item.goal_id).then(loadGoals),
+                },
+              ]);
+            }}
           >
-            <Ionicons name="create-outline" size={20} color="#120fda" />
-          </Pressable>
-          <Pressable
-            style={({ pressed }) => [
-              styles.button,
-              pressed && styles.buttonPressed,
-            ]}
-            onPress={() => handleDeleteGoal(item.goal_id)}
-          >
-            <Ionicons name="trash-outline" size={20} color="#d11313" />
+            <Ionicons name="trash-outline" size={24} color="#EF4444" />
           </Pressable>
         </View>
       </View>
@@ -281,7 +328,7 @@ export default function GoalsScreen() {
 
   return (
     <View style={styles.container}>
-      {/* --- TOTAL PROGRESS SUMMARY CARD --- */}
+      {/* SUMMARY */}
       {goals.length > 0 && (
         <View style={styles.summaryCard}>
           <View style={styles.summaryRow}>
@@ -295,7 +342,6 @@ export default function GoalsScreen() {
               {Math.round(totals.progress)}%
             </Text>
           </View>
-
           <View style={styles.summaryProgressTrack}>
             <View
               style={[
@@ -304,13 +350,9 @@ export default function GoalsScreen() {
               ]}
             />
           </View>
-
           <View style={styles.summaryFooter}>
             <Text style={styles.summaryFooterText}>
-              Overall Target:{" "}
-              <Text style={{ fontWeight: "700" }}>
-                ₱{totals.target.toLocaleString()}
-              </Text>
+              Target: ₱{totals.target.toLocaleString()}
             </Text>
           </View>
         </View>
@@ -321,12 +363,8 @@ export default function GoalsScreen() {
         keyExtractor={(item) => item.goal_id}
         renderItem={renderGoal}
         contentContainerStyle={styles.list}
-        showsVerticalScrollIndicator={false}
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="leaf-outline" size={64} color="#CBD5E1" />
-            <Text style={styles.emptyText}>No goals yet. Start small!</Text>
-          </View>
+          <Text style={styles.emptyText}>No goals found.</Text>
         }
       />
 
@@ -335,7 +373,7 @@ export default function GoalsScreen() {
       </Pressable>
 
       {/* CREATE/EDIT MODAL */}
-      <Modal transparent animationType="fade" visible={modalVisible}>
+      <Modal transparent animationType="slide" visible={modalVisible}>
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.modalOverlay}
@@ -343,45 +381,79 @@ export default function GoalsScreen() {
           <View style={styles.modalContainer}>
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>
-              {isEditMode ? "Edit Goal" : "Create Goal"}
+              {selectedGoalId ? "Edit Goal" : "New Goal"}
             </Text>
+
             <FlatList
               data={iconOptions}
-              keyExtractor={(item) => item}
               numColumns={5}
+              keyExtractor={(i) => i}
               ListHeaderComponent={
                 <>
                   <Text style={styles.inputLabel}>Goal Name</Text>
                   <TextInput
-                    style={styles.input}
-                    value={goal}
-                    onChangeText={setGoal}
-                    placeholder="e.g. New Laptop"
+                    style={[styles.input, nameError && styles.inputError]}
+                    value={goalName}
+                    onChangeText={(t) => {
+                      setGoalName(t);
+                      setNameError("");
+                    }}
+                    placeholder="e.g. Travel"
                   />
+                  {nameError ? (
+                    <Text style={styles.errorText}>{nameError}</Text>
+                  ) : null}
+
                   <View style={styles.inputRow}>
                     <View style={{ flex: 1, marginRight: 8 }}>
-                      <Text style={styles.inputLabel}>Amount (₱)</Text>
+                      <Text style={styles.inputLabel}>Target (₱)</Text>
                       <TextInput
-                        style={styles.input}
-                        placeholder="0.00"
+                        style={[styles.input, amountError && styles.inputError]}
                         value={targetAmount}
-                        onChangeText={setTargetAmount}
+                        onChangeText={(t) => {
+                          setTargetAmount(t);
+                          setAmountError("");
+                        }}
                         keyboardType="numeric"
+                        placeholder="0.00"
                       />
+                      {amountError ? (
+                        <Text style={styles.errorText}>{amountError}</Text>
+                      ) : null}
                     </View>
                     <View style={{ flex: 1, marginLeft: 8 }}>
                       <Text style={styles.inputLabel}>Deadline</Text>
                       <TextInput
-                        style={styles.input}
-                        placeholder="MM / YYYY"
-                        keyboardType="number-pad"
-                        maxLength={9}
+                        style={[styles.input, dateError && styles.inputError]}
                         value={targetDate}
                         onChangeText={handleDateChange}
+                        placeholder="MM / YYYY"
+                        maxLength={9}
                       />
+                      {dateError ? (
+                        <Text style={styles.errorText}>{dateError}</Text>
+                      ) : null}
                     </View>
                   </View>
-                  <Text style={styles.inputLabel}>Choose an Icon</Text>
+
+                  <Text style={styles.inputLabel}>Description</Text>
+                  <TextInput
+                    style={[
+                      styles.inputDescription,
+                      descError && styles.inputError,
+                    ]}
+                    value={description}
+                    onChangeText={(t) => {
+                      setDescription(t);
+                      setDescError("");
+                    }}
+                    multiline
+                    placeholder="Optional..."
+                  />
+                  {descError ? (
+                    <Text style={styles.errorText}>{descError}</Text>
+                  ) : null}
+                  <Text style={styles.inputLabel}>Icon</Text>
                 </>
               }
               renderItem={({ item }) => (
@@ -402,15 +474,10 @@ export default function GoalsScreen() {
               ListFooterComponent={
                 <View style={styles.buttonRow}>
                   <Pressable style={styles.btnSecondary} onPress={closeModal}>
-                    <Text style={styles.btnSecondaryText}>Cancel</Text>
+                    <Text>Cancel</Text>
                   </Pressable>
-                  <Pressable
-                    style={styles.btnPrimary}
-                    onPress={isEditMode ? handleSaveUpdateGoal : handleSaveGoal}
-                  >
-                    <Text style={styles.btnPrimaryText}>
-                      {isEditMode ? "Save" : "Create Goal"}
-                    </Text>
+                  <Pressable style={styles.btnPrimary} onPress={handleSaveGoal}>
+                    <Text style={{ color: "#FFF" }}>Save Goal</Text>
                   </Pressable>
                 </View>
               }
@@ -420,34 +487,40 @@ export default function GoalsScreen() {
       </Modal>
 
       {/* ADD MONEY MODAL */}
-      <Modal transparent animationType="fade" visible={modalAddMoneyVisible}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={styles.modalOverlay}
-        >
+      <Modal transparent visible={modalAddMoneyVisible}>
+        <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
-            <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>Add Amount</Text>
+            <Text style={styles.modalTitle}>Add Savings</Text>
             <TextInput
-              style={styles.input}
-              value={amount}
-              onChangeText={setAmount}
+              style={[styles.input, addMoneyError && styles.inputError]}
+              value={addAmount}
+              onChangeText={(t) => {
+                setAddAmount(t);
+                setAddMoneyError("");
+              }}
               placeholder="0.00"
               keyboardType="numeric"
             />
+            {addMoneyError ? (
+              <Text style={styles.errorText}>{addMoneyError}</Text>
+            ) : null}
             <View style={styles.buttonRow}>
               <Pressable
                 style={styles.btnSecondary}
-                onPress={handCloseAddMoneyModal}
+                onPress={() => {
+                  setModalAddMoneyVisible(false);
+                  setAddMoneyError("");
+                  setAddAmount("");
+                }}
               >
-                <Text style={styles.btnSecondaryText}>Cancel</Text>
+                <Text>Cancel</Text>
               </Pressable>
               <Pressable style={styles.btnPrimary} onPress={handleSaveAddMoney}>
-                <Text style={styles.btnPrimaryText}>Save</Text>
+                <Text style={{ color: "#FFF" }}>Save</Text>
               </Pressable>
             </View>
           </View>
-        </KeyboardAvoidingView>
+        </View>
       </Modal>
     </View>
   );
@@ -455,32 +528,19 @@ export default function GoalsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FBFDFF" },
-
-  // --- NEW SUMMARY STYLES ---
   summaryCard: {
     backgroundColor: "#0F172A",
-    marginHorizontal: 20,
-    marginVertical: 15,
+    margin: 20,
     padding: 20,
     borderRadius: 24,
-    elevation: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
   },
   summaryRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
   },
-  summaryLabel: { color: "#94A3B8", fontSize: 14, fontWeight: "600" },
-  summaryMainAmount: {
-    color: "#FFF",
-    fontSize: 26,
-    fontWeight: "800",
-    marginTop: 4,
-  },
+  summaryLabel: { color: "#94A3B8", fontSize: 14 },
+  summaryMainAmount: { color: "#FFF", fontSize: 26, fontWeight: "800" },
   summaryPercentage: { color: "#10B981", fontSize: 22, fontWeight: "800" },
   summaryProgressTrack: {
     height: 10,
@@ -494,26 +554,21 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   summaryFooter: { marginTop: 12 },
-  summaryFooterText: { color: "#94A3B8", fontSize: 13 },
-
-  list: { paddingHorizontal: 20, paddingBottom: 120, paddingTop: 20 },
+  summaryFooterText: { color: "#94A3B8" },
+  list: { paddingHorizontal: 20, paddingBottom: 100 },
   card: {
     backgroundColor: "#FFF",
     padding: 20,
     borderRadius: 24,
     marginBottom: 16,
     elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 2, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
   },
   cardTop: { flexDirection: "row", alignItems: "center" },
   iconContainer: {
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: "#ECFDF5",
+    backgroundColor: "#F1F5F9",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
@@ -527,7 +582,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     marginTop: 14,
   },
-  progressBar: { height: "100%", backgroundColor: "#10B981", borderRadius: 4 },
+  progressBar: { height: "100%", borderRadius: 4 },
   cardBottom: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -541,16 +596,22 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   dateText: { fontSize: 12, marginLeft: 4 },
+  statusBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginLeft: 8,
+  },
+  statusText: { fontSize: 9, fontWeight: "bold" },
+  descriptionContainer: { marginTop: 8 },
+  descriptionText: { fontSize: 13, color: "#475569" },
   actionContainer: {
     flexDirection: "row",
     justifyContent: "flex-end",
-    gap: 2,
+    gap: 10,
     marginTop: 10,
   },
   button: { padding: 5 },
-  buttonPressed: { transform: [{ scale: 0.8 }], opacity: 0.7 },
-  emptyContainer: { alignItems: "center", marginTop: 80 },
-  emptyText: { marginTop: 12, color: "#94A3B8" },
   fab: {
     position: "absolute",
     right: 24,
@@ -564,7 +625,7 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(15, 23, 42, 0.6)",
+    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "flex-end",
   },
   modalContainer: {
@@ -583,49 +644,61 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "700",
     textAlign: "center",
-    marginBottom: 24,
+    marginBottom: 20,
   },
-  inputLabel: { fontWeight: "700", marginBottom: 6 },
+  inputLabel: { fontWeight: "700", marginBottom: 5 },
   input: {
     backgroundColor: "#F8FAFC",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    marginBottom: 10,
+    marginTop: 10,
+  },
+  inputError: { borderColor: "#EF4444" },
+  errorText: { color: "#EF4444", fontSize: 12, marginTop: 4 },
+  inputDescription: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    padding: 12,
+    height: 80,
+    textAlignVertical: "top",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
   },
   inputRow: { flexDirection: "row" },
   iconOption: {
-    width: 50,
-    height: 50,
-    borderRadius: 16,
+    width: 45,
+    height: 45,
+    borderRadius: 12,
     backgroundColor: "#F8FAFC",
     justifyContent: "center",
     alignItems: "center",
-    margin: 6,
+    margin: 5,
   },
   iconSelected: {
     backgroundColor: "#ECFDF5",
     borderWidth: 1,
     borderColor: "#10B981",
   },
-  buttonRow: { flexDirection: "row", marginTop: 20, marginBottom: 30 },
+  buttonRow: { flexDirection: "row", marginTop: 25, gap: 10 },
   btnPrimary: {
     flex: 2,
     backgroundColor: "#10B981",
-    padding: 18,
-    borderRadius: 18,
+    padding: 15,
+    borderRadius: 12,
     alignItems: "center",
   },
   btnSecondary: {
     flex: 1,
     backgroundColor: "#F1F5F9",
-    padding: 18,
-    borderRadius: 18,
+    padding: 15,
+    borderRadius: 12,
     alignItems: "center",
-    marginRight: 12,
   },
-  btnPrimaryText: { color: "#FFF", fontWeight: "700" },
-  btnSecondaryText: { color: "#64748B", fontWeight: "700" },
+  emptyText: { textAlign: "center", marginTop: 50, color: "#94A3B8" },
 });
