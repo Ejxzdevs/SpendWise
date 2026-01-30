@@ -116,7 +116,7 @@ export default function GoalsScreen() {
       setDateError("Enter valid date (MM / YYYY)");
       valid = false;
     }
-    if ((description || "").length > 80) {
+    if (description.length > 80) {
       setDescError("Max 80 characters");
       valid = false;
     }
