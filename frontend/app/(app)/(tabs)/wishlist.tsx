@@ -360,9 +360,12 @@ export default function GoalsScreen() {
 
       <FlatList
         data={goals}
-        keyExtractor={(item) => item.goal_id}
         renderItem={renderGoal}
+        keyExtractor={(item) => item.goal_id}
         contentContainerStyle={styles.list}
+        ListHeaderComponent={() => (
+          <Text style={styles.sectionTitle}>Wishlist Goals</Text>
+        )}
         ListEmptyComponent={
           <Text style={styles.emptyText}>No goals found.</Text>
         }
@@ -556,6 +559,12 @@ const styles = StyleSheet.create({
   summaryFooter: { marginTop: 12 },
   summaryFooterText: { color: "#94A3B8" },
   list: { paddingHorizontal: 20, paddingBottom: 100 },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1E293B",
+    marginBottom: 16,
+  },
   card: {
     backgroundColor: "#FFF",
     padding: 20,
