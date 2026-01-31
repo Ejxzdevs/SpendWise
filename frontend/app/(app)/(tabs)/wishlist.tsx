@@ -60,7 +60,6 @@ export default function GoalsScreen() {
       0,
     );
     const progress = totalTarget > 0 ? (totalCurrent / totalTarget) * 100 : 0;
-
     return {
       current: totalCurrent,
       target: totalTarget,
@@ -73,7 +72,6 @@ export default function GoalsScreen() {
     try {
       const response = await fetchGoals();
       if (response.success) {
-        // Strict Numeric Sanitization
         const sanitized = response.data.map((item: any) => ({
           ...item,
           current_amount: Number(item.current_amount || 0),
@@ -95,15 +93,13 @@ export default function GoalsScreen() {
   const handleDateChange = (text: string) => {
     setDateError("");
     let cleaned = (text || "").replace(/\D/g, "");
-    if (cleaned.length > 2) {
+    if (cleaned.length > 2)
       cleaned = `${cleaned.slice(0, 2)} / ${cleaned.slice(2, 6)}`;
-    }
     setTargetDate(cleaned);
   };
 
   const validateGoalForm = () => {
     let valid = true;
-    // Using ?.length and || "" to prevent "null" property errors
     if (!goalName?.trim()) {
       setNameError("Goal name is required");
       valid = false;
@@ -145,12 +141,10 @@ export default function GoalsScreen() {
     setDescError("");
   };
 
-  // --- SAVE GOAL HANDLER ---
   const handleSaveGoal = async () => {
     if (!validateGoalForm()) return;
     const [month, year] = targetDate.split(" / ");
     const formattedDate = `${year}-${month.padStart(2, "0")}-01`;
-
     const payload: GoalPayload = {
       goal_name: goalName,
       target_amount: parseFloat(targetAmount),
@@ -158,13 +152,9 @@ export default function GoalsScreen() {
       description: description || "",
       icon_name: selectedIcon ?? undefined,
     };
-
     try {
-      if (selectedGoalId) {
-        await updateGoal(selectedGoalId, payload);
-      } else {
-        await saveGoal(payload);
-      }
+      if (selectedGoalId) await updateGoal(selectedGoalId, payload);
+      else await saveGoal(payload);
       loadGoals();
       closeModal();
     } catch {
@@ -172,7 +162,6 @@ export default function GoalsScreen() {
     }
   };
 
-  // --- ADD MONEY HANDLERS ---
   const handleSaveAddMoney = async () => {
     const amountVal = parseFloat(addAmount);
     if (isNaN(amountVal) || amountVal <= 0) {
@@ -183,7 +172,6 @@ export default function GoalsScreen() {
       setAddMoneyError("Amount exceeds target");
       return;
     }
-
     try {
       await addMoneyToGoal({ goal_id: selectedGoalId!, amount: amountVal });
       loadGoals();
@@ -204,77 +192,84 @@ export default function GoalsScreen() {
 
     return (
       <View style={styles.card}>
-        <View style={styles.cardTop}>
-          <View style={styles.iconContainer}>
-            <Ionicons
-              name={
-                isCompleted ? "checkmark-circle" : item.icon_name || "rocket"
-              }
-              size={22}
-              color={isCompleted ? "#10B981" : "#3B82F6"}
-            />
-          </View>
-          <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <Text style={styles.goalName}>{item.goal_name}</Text>
-              <View
-                style={[
-                  styles.statusBadge,
-                  { backgroundColor: isCompleted ? "#D1FAE5" : "#FEF3C7" },
-                ]}
-              >
-                <Text
+        {/* Main Content Area */}
+        <View style={styles.cardPadding}>
+          <View style={styles.cardTop}>
+            <View style={styles.iconContainer}>
+              <Ionicons
+                name={
+                  isCompleted
+                    ? "checkmark-circle"
+                    : (item.icon_name as any) || "rocket"
+                }
+                size={22}
+                color={isCompleted ? "#10B981" : "#3B82F6"}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <Text style={styles.goalName}>{item.goal_name}</Text>
+                <View
                   style={[
-                    styles.statusText,
-                    { color: isCompleted ? "#065F46" : "#92400E" },
+                    styles.statusBadge,
+                    { backgroundColor: isCompleted ? "#D1FAE5" : "#FEF3C7" },
                   ]}
                 >
-                  {isCompleted ? "Completed" : "Incomplete"}
-                </Text>
+                  <Text
+                    style={[
+                      styles.statusText,
+                      { color: isCompleted ? "#065F46" : "#92400E" },
+                    ]}
+                  >
+                    {isCompleted ? "Completed" : "Incomplete"}
+                  </Text>
+                </View>
               </View>
+              <Text style={styles.goalTarget}>
+                Target: ₱{tar.toLocaleString()}
+              </Text>
             </View>
-            <Text style={styles.goalTarget}>
-              Target: ₱{tar.toLocaleString()}
-            </Text>
+            <Text style={styles.percentageText}>{Math.round(progress)}%</Text>
           </View>
-          <Text style={styles.percentageText}>{Math.round(progress)}%</Text>
+
+          {item.description ? (
+            <View style={styles.descriptionContainer}>
+              <Text style={styles.descriptionText} numberOfLines={2}>
+                {item.description}
+              </Text>
+            </View>
+          ) : null}
+
+          <View style={styles.progressTrack}>
+            <View
+              style={[
+                styles.progressBar,
+                {
+                  width: `${progress}%`,
+                  backgroundColor: isCompleted ? "#10B981" : "#3B82F6",
+                },
+              ]}
+            />
+          </View>
+
+          <View style={styles.cardBottom}>
+            <Text style={styles.currentAmount}>₱{cur.toLocaleString()}</Text>
+            <View style={styles.dateBadge}>
+              <Ionicons name="calendar-outline" size={12} color="#64748B" />
+              <Text style={styles.dateText}>
+                {item.target_date
+                  ? new Date(item.target_date).toLocaleDateString()
+                  : "No Date"}
+              </Text>
+            </View>
+          </View>
         </View>
 
-        {item.description ? (
-          <View style={styles.descriptionContainer}>
-            <Text style={styles.descriptionText}>{item.description}</Text>
-          </View>
-        ) : null}
-
-        <View style={styles.progressTrack}>
-          <View
-            style={[
-              styles.progressBar,
-              {
-                width: `${progress}%`,
-                backgroundColor: isCompleted ? "#10B981" : "#3B82F6",
-              },
-            ]}
-          />
-        </View>
-
-        <View style={styles.cardBottom}>
-          <Text style={styles.currentAmount}>₱{cur.toLocaleString()}</Text>
-          <View style={styles.dateBadge}>
-            <Ionicons name="calendar-outline" size={12} color="#64748B" />
-            <Text style={styles.dateText}>
-              {item.target_date
-                ? new Date(item.target_date).toLocaleDateString()
-                : "No Date"}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.actionContainer}>
-          {/* // Add Money Button */}
+        {/* --- IMPROVED FOOTER UI --- */}
+        <View style={styles.footerActionRow}>
           {!isCompleted && (
             <Pressable
-              style={styles.button}
+              style={[styles.footerButton, styles.borderRight]}
               onPress={() => {
                 setSelectedGoalId(item.goal_id);
                 setCurrentGoalAmount(cur);
@@ -282,13 +277,15 @@ export default function GoalsScreen() {
                 setModalAddMoneyVisible(true);
               }}
             >
-              <Ionicons name="add-circle-outline" size={24} color="#10B981" />
+              <Ionicons name="add-circle-outline" size={20} color="#10B981" />
+              <Text style={[styles.footerButtonText, { color: "#10B981" }]}>
+                Add
+              </Text>
             </Pressable>
           )}
 
-          {/* // Edit Button */}
           <Pressable
-            style={styles.button}
+            style={[styles.footerButton, styles.borderRight]}
             onPress={() => {
               setGoalName(item.goal_name || "");
               setTargetAmount((item.target_amount || 0).toString());
@@ -303,12 +300,14 @@ export default function GoalsScreen() {
               setModalVisible(true);
             }}
           >
-            <Ionicons name="create-outline" size={24} color="#3B82F6" />
+            <Ionicons name="create-outline" size={20} color="#3B82F6" />
+            <Text style={[styles.footerButtonText, { color: "#3B82F6" }]}>
+              Edit
+            </Text>
           </Pressable>
 
-          {/* // Delete Button */}
           <Pressable
-            style={styles.button}
+            style={styles.footerButton}
             onPress={() => {
               Alert.alert("Delete", "Are you sure?", [
                 { text: "No" },
@@ -319,7 +318,10 @@ export default function GoalsScreen() {
               ]);
             }}
           >
-            <Ionicons name="trash-outline" size={24} color="#EF4444" />
+            <Ionicons name="trash-outline" size={20} color="#EF4444" />
+            <Text style={[styles.footerButtonText, { color: "#EF4444" }]}>
+              Delete
+            </Text>
           </Pressable>
         </View>
       </View>
@@ -328,7 +330,6 @@ export default function GoalsScreen() {
 
   return (
     <View style={styles.container}>
-      {/* SUMMARY */}
       {goals.length > 0 && (
         <View style={styles.summaryCard}>
           <View style={styles.summaryRow}>
@@ -342,14 +343,14 @@ export default function GoalsScreen() {
               {Math.round(totals.progress)}%
             </Text>
           </View>
-          <View style={styles.summaryProgressTrack}>
-            <View
-              style={[
-                styles.summaryProgressBar,
-                { width: `${totals.progress}%` },
-              ]}
+          <div style={styles.summaryProgressTrack}>
+            <div
+              style={{
+                ...styles.summaryProgressBar,
+                width: `${totals.progress}%`,
+              }}
             />
-          </View>
+          </div>
           <View style={styles.summaryFooter}>
             <Text style={styles.summaryFooterText}>
               Target: ₱{totals.target.toLocaleString()}
@@ -375,7 +376,7 @@ export default function GoalsScreen() {
         <Ionicons name="add" size={32} color="#FFF" />
       </Pressable>
 
-      {/* CREATE/EDIT MODAL */}
+      {/* MODALS REMAIN THE SAME... */}
       <Modal transparent animationType="slide" visible={modalVisible}>
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -386,7 +387,6 @@ export default function GoalsScreen() {
             <Text style={styles.modalTitle}>
               {selectedGoalId ? "Edit Goal" : "New Goal"}
             </Text>
-
             <FlatList
               data={iconOptions}
               numColumns={5}
@@ -406,7 +406,6 @@ export default function GoalsScreen() {
                   {nameError ? (
                     <Text style={styles.errorText}>{nameError}</Text>
                   ) : null}
-
                   <View style={styles.inputRow}>
                     <View style={{ flex: 1, marginRight: 8 }}>
                       <Text style={styles.inputLabel}>Target (₱)</Text>
@@ -420,9 +419,6 @@ export default function GoalsScreen() {
                         keyboardType="numeric"
                         placeholder="0.00"
                       />
-                      {amountError ? (
-                        <Text style={styles.errorText}>{amountError}</Text>
-                      ) : null}
                     </View>
                     <View style={{ flex: 1, marginLeft: 8 }}>
                       <Text style={styles.inputLabel}>Deadline</Text>
@@ -433,12 +429,14 @@ export default function GoalsScreen() {
                         placeholder="MM / YYYY"
                         maxLength={9}
                       />
-                      {dateError ? (
-                        <Text style={styles.errorText}>{dateError}</Text>
-                      ) : null}
                     </View>
                   </View>
-
+                  {amountError ? (
+                    <Text style={styles.errorText}>{amountError}</Text>
+                  ) : null}
+                  {dateError ? (
+                    <Text style={styles.errorText}>{dateError}</Text>
+                  ) : null}
                   <Text style={styles.inputLabel}>Description</Text>
                   <TextInput
                     style={[
@@ -468,7 +466,7 @@ export default function GoalsScreen() {
                   onPress={() => setSelectedIcon(item)}
                 >
                   <Ionicons
-                    name={item}
+                    name={item as any}
                     size={22}
                     color={selectedIcon === item ? "#10B981" : "#475569"}
                   />
@@ -489,7 +487,6 @@ export default function GoalsScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* ADD MONEY MODAL */}
       <Modal transparent visible={modalAddMoneyVisible}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
@@ -512,7 +509,6 @@ export default function GoalsScreen() {
                 style={styles.btnSecondary}
                 onPress={() => {
                   setModalAddMoneyVisible(false);
-                  setAddMoneyError("");
                   setAddAmount("");
                 }}
               >
@@ -565,13 +561,17 @@ const styles = StyleSheet.create({
     color: "#1E293B",
     marginBottom: 16,
   },
+
   card: {
     backgroundColor: "#FFF",
-    padding: 20,
     borderRadius: 24,
     marginBottom: 16,
     elevation: 3,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#F1F5F9",
   },
+  cardPadding: { padding: 20 },
   cardTop: { flexDirection: "row", alignItems: "center" },
   iconContainer: {
     width: 44,
@@ -614,13 +614,25 @@ const styles = StyleSheet.create({
   statusText: { fontSize: 9, fontWeight: "bold" },
   descriptionContainer: { marginTop: 8 },
   descriptionText: { fontSize: 13, color: "#475569" },
-  actionContainer: {
+
+  // NEW FOOTER STYLES
+  footerActionRow: {
     flexDirection: "row",
-    justifyContent: "flex-end",
-    gap: 10,
-    marginTop: 10,
+    backgroundColor: "#F8FAFC",
+    borderTopWidth: 1,
+    borderTopColor: "#F1F5F9",
   },
-  button: { padding: 5 },
+  footerButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    gap: 6,
+  },
+  footerButtonText: { fontSize: 13, fontWeight: "700" },
+  borderRight: { borderRightWidth: 1, borderRightColor: "#F1F5F9" },
+
   fab: {
     position: "absolute",
     right: 24,
@@ -658,15 +670,13 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 20,
   },
-  inputLabel: { fontWeight: "700", marginBottom: 5 },
+  inputLabel: { fontWeight: "700", marginBottom: 5, marginTop: 10 },
   input: {
     backgroundColor: "#F8FAFC",
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
     borderColor: "#E2E8F0",
-    marginBottom: 10,
-    marginTop: 10,
   },
   inputError: { borderColor: "#EF4444" },
   errorText: { color: "#EF4444", fontSize: 12, marginTop: 4 },
@@ -694,7 +704,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#10B981",
   },
-  buttonRow: { flexDirection: "row", marginTop: 25, gap: 10 },
+  buttonRow: { flexDirection: "row", marginTop: 25, gap: 10, marginBottom: 20 },
   btnPrimary: {
     flex: 2,
     backgroundColor: "#10B981",
