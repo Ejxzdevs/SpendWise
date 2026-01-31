@@ -5,7 +5,7 @@ import { authenticateUser } from "../middleware/authmiddleware.js";
 const router = Router();
 
 // List of income routes
-router.post("/create", authenticateUser, IncomeController.createIncome);
-router.get("/all", authenticateUser, IncomeController.getAllIncomes);
-
+router.post("/", authenticateUser, IncomeController.createIncome);
+router.get("/", authenticateUser, IncomeController.getAllIncomes);
+router.delete("/:id", authenticateUser, IncomeController.deleteIncomee);
 export default router;
