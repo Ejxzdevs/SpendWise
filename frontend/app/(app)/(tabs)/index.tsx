@@ -10,6 +10,7 @@ import {
   RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { expenseCategoryIcons } from "@/types/category";
 
 // Import your services
 import { fetchExpenses } from "@/services/expenseServices";
@@ -17,19 +18,6 @@ import { fetchIncomes } from "@/services/incomeServices";
 import { fetchGoals } from "@/services/goalServices";
 
 const { width } = Dimensions.get("window");
-
-// Helper to map categories to specific icons
-const getCategoryIcon = (category: string) => {
-  const map: Record<string, any> = {
-    Food: "fast-food",
-    Transport: "car",
-    Fun: "film",
-    Groceries: "cart",
-    Bills: "receipt",
-    Health: "medkit",
-  };
-  return map[category] || "wallet";
-};
 
 export default function DashboardScreen() {
   const [loading, setLoading] = useState(true);
@@ -134,11 +122,16 @@ export default function DashboardScreen() {
         />
       }
     >
-      {/* 1. Main Balance Card */}
+      {/* Main Balance Card */}
       <View style={styles.balanceCard}>
         <View>
           <Text style={styles.balanceLabel}>Total Balance</Text>
-          <Text style={styles.balanceAmount}>
+          <Text
+            style={[
+              styles.balanceAmount,
+              { color: totalBalance >= 0 ? "#10B981" : "#EF4444" },
+            ]}
+          >
             ₱
             {totalBalance.toLocaleString(undefined, {
               minimumFractionDigits: 2,
@@ -151,7 +144,7 @@ export default function DashboardScreen() {
         </Pressable>
       </View>
 
-      {/* 2. Income vs Expense Row */}
+      {/* Income and Expenses Summary */}
       <View style={styles.statsRow}>
         <View style={[styles.statBox, { marginRight: 12 }]}>
           <View style={[styles.iconCircle, { backgroundColor: "#ECFDF5" }]}>
@@ -178,7 +171,7 @@ export default function DashboardScreen() {
         </View>
       </View>
 
-      {/* 3. Category Spending (Limited to 3) */}
+      {/* Category Spending */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Latest Transactions</Text>
       </View>
@@ -187,7 +180,7 @@ export default function DashboardScreen() {
         {data.categoryTotals.map((item, index) => (
           <CategoryCard
             key={index}
-            icon={getCategoryIcon(item.category)}
+            icon={expenseCategoryIcons[item.category] || "cash-outline"}
             label={item.category}
             amount={`₱${item.amount.toLocaleString()}`}
             color={item.color}
@@ -195,7 +188,7 @@ export default function DashboardScreen() {
         ))}
       </View>
 
-      {/* 4. Financial Goals (Recent 3) */}
+      {/* Financial Goals */}
       <View style={[styles.sectionHeader, { marginTop: 24 }]}>
         <Text style={styles.sectionTitle}>Financial Goals</Text>
       </View>
@@ -276,7 +269,6 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   balanceAmount: {
-    color: "#FFFFFF",
     fontSize: 32,
     fontWeight: "bold",
     marginTop: 4,
