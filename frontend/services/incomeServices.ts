@@ -12,7 +12,7 @@ export const saveIncome = async (
 ): Promise<IncomeResponse> => {
   try {
     const token = await getUserToken();
-    const response = await apiClient.post("/income/create", payload, {
+    const response = await apiClient.post("/income/", payload, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -32,7 +32,28 @@ export const saveIncome = async (
 export const fetchIncomes = async (): Promise<FetchIncomesResponse> => {
   try {
     const token = await getUserToken();
-    const response = await apiClient.get("/income/all", {
+    const response = await apiClient.get("/income/", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    if (error.response && error.response.data) {
+      throw new Error(error.response.data.message);
+    } else {
+      throw new Error("Network or unknown error");
+    }
+  }
+};
+
+// delete income data from the backend
+export const deleteIncome = async (
+  source_id: string,
+): Promise<IncomeResponse> => {
+  try {
+    const token = await getUserToken();
+    const response = await apiClient.delete(`/income/${source_id}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
