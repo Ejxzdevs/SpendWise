@@ -13,7 +13,7 @@ export const saveExpense = async (
   try {
     const token = await getUserToken();
 
-    const response = await apiClient.post("/expense/create", payload, {
+    const response = await apiClient.post("/expense/", payload, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -33,12 +33,33 @@ export const saveExpense = async (
 export const fetchExpenses = async (): Promise<FetchExpensesResponse> => {
   try {
     const token = await getUserToken();
-    const response = await apiClient.get("/expense/products", {
+    const response = await apiClient.get("/expense/", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
 
+    return response.data;
+  } catch (error: any) {
+    if (error.response && error.response.data) {
+      throw new Error(error.response.data.message);
+    } else {
+      throw new Error("Network or unknown error");
+    }
+  }
+};
+
+// delete expense data from the backend
+export const deleteExpense = async (
+  expenseId: string,
+): Promise<{ message: string }> => {
+  try {
+    const token = await getUserToken();
+    const response = await apiClient.delete(`/expense/${expenseId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
     return response.data;
   } catch (error: any) {
     if (error.response && error.response.data) {
