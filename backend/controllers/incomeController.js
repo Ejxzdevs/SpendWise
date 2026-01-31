@@ -31,6 +31,21 @@ class IncomeController {
       res.status(500).json({ success: false, message: error.message });
     }
   };
+
+  deleteIncomee = async (req, res) => {
+    const userId = req.user.id;
+    const source_id = req.params.id;
+    if (!source_id)
+      return res
+        .status(400)
+        .json({ success: false, message: "Income ID is required" });
+    try {
+      await IncomeServices.deleteIncome({ userId, source_id });
+      res.status(200).json({ success: true, message: "Income deleted" });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  };
 }
 
 export default new IncomeController();
