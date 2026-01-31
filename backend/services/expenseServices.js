@@ -33,6 +33,16 @@ class ExpenseServices {
     );
     return expenses;
   }
+
+  // DELETE EXPENSE + invalidate cache
+  static async deleteExpense(expenseId, userId) {
+    const deleted = await ExpensesModel.deleteExpense(expenseId);
+    if (deleted) {
+      // Invalidate Redis cache
+      await redisClient.del(`expenses:${userId}`);
+    }
+    return deleted;
+  }
 }
 
 export default ExpenseServices;
