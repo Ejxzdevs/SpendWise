@@ -37,7 +37,6 @@ export default function DashboardScreen() {
         fetchGoals(),
       ]);
 
-      // Safely extract arrays
       const expenses = expenseRes?.data || [];
       const incomes = incomeRes?.data || [];
       const goals = goalRes?.data || [];
@@ -51,7 +50,7 @@ export default function DashboardScreen() {
         0,
       );
 
-      // Group Expenses by Category & LIMIT TO 3
+      // Group Expenses by Category
       const categoriesMap = expenses.reduce((acc: any, curr: any) => {
         acc[curr.category] =
           (acc[curr.category] || 0) + (Number(curr.amount) || 0);
@@ -69,7 +68,7 @@ export default function DashboardScreen() {
         .sort((a, b) => b.amount - a.amount)
         .slice(0, 3);
 
-      // Sort Goals by MOST RECENT (created_at) & LIMIT TO 3
+      // Sort Goals by Most Recent
       const recentGoals = goals
         .sort(
           (a: any, b: any) =>
@@ -171,67 +170,84 @@ export default function DashboardScreen() {
         </View>
       </View>
 
-      {/* Category Spending */}
+      {/* Category Spending Section */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Latest Transactions</Text>
+        <Text style={styles.sectionTitle}>Top Spending</Text>
       </View>
 
       <View style={styles.categoriesContainer}>
-        {data.categoryTotals.map((item, index) => (
-          <CategoryCard
-            key={index}
-            icon={expenseCategoryIcons[item.category] || "cash-outline"}
-            label={item.category}
-            amount={`₱${item.amount.toLocaleString()}`}
-            color={item.color}
-          />
-        ))}
+        {data.categoryTotals.length > 0 ? (
+          data.categoryTotals.map((item, index) => (
+            <CategoryCard
+              key={index}
+              icon={expenseCategoryIcons[item.category] || "cash-outline"}
+              label={item.category}
+              amount={`₱${item.amount.toLocaleString()}`}
+              color={item.color}
+            />
+          ))
+        ) : (
+          <View style={styles.emptyCard}>
+            <Ionicons name="receipt-outline" size={32} color="#94A3B8" />
+            <Text style={styles.emptyText}>No transactions yet</Text>
+          </View>
+        )}
       </View>
 
-      {/* Financial Goals */}
+      {/* Financial Goals Section */}
       <View style={[styles.sectionHeader, { marginTop: 24 }]}>
         <Text style={styles.sectionTitle}>Financial Goals</Text>
       </View>
 
-      {data.goals.map((goal) => {
-        const progress =
-          Math.min(
-            (Number(goal.current_amount) / Number(goal.target_amount)) * 100,
-            100,
-          ) || 0;
-        return (
-          <View key={goal.goal_id} style={styles.goalItem}>
-            <View
-              style={[
-                styles.goalIconContainer,
-                { backgroundColor: "#3B82F620" },
-              ]}
-            >
-              <Ionicons
-                name={goal.icon_name || "flag"}
-                size={22}
-                color="#3B82F6"
-              />
-            </View>
-            <View style={{ flex: 1 }}>
-              <View style={styles.goalInfoRow}>
-                <Text style={styles.goalNameText}>{goal.goal_name}</Text>
-                <Text style={styles.goalProgressText}>
-                  {progress.toFixed(0)}%
-                </Text>
-              </View>
-              <View style={styles.progressBarBg}>
+      <View style={styles.goalsListContainer}>
+        {data.goals.length > 0 ? (
+          data.goals.map((goal) => {
+            const progress =
+              Math.min(
+                (Number(goal.current_amount) / Number(goal.target_amount)) *
+                  100,
+                100,
+              ) || 0;
+            return (
+              <View key={goal.goal_id} style={styles.goalItem}>
                 <View
                   style={[
-                    styles.progressBarFill,
-                    { width: `${progress}%`, backgroundColor: "#3B82F6" },
+                    styles.goalIconContainer,
+                    { backgroundColor: "#3B82F620" },
                   ]}
-                />
+                >
+                  <Ionicons
+                    name={goal.icon_name || "flag"}
+                    size={22}
+                    color="#3B82F6"
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.goalInfoRow}>
+                    <Text style={styles.goalNameText}>{goal.goal_name}</Text>
+                    <Text style={styles.goalProgressText}>
+                      {progress.toFixed(0)}%
+                    </Text>
+                  </View>
+                  <View style={styles.progressBarBg}>
+                    <View
+                      style={[
+                        styles.progressBarFill,
+                        { width: `${progress}%`, backgroundColor: "#3B82F6" },
+                      ]}
+                    />
+                  </View>
+                </View>
               </View>
-            </View>
+            );
+          })
+        ) : (
+          <View style={[styles.emptyCard, { marginHorizontal: 16 }]}>
+            <Ionicons name="trophy-outline" size={32} color="#94A3B8" />
+            <Text style={styles.emptyText}>No financial goals set</Text>
           </View>
-        );
-      })}
+        )}
+      </View>
 
       <View style={{ height: 40 }} />
     </ScrollView>
@@ -264,41 +280,37 @@ const styles = StyleSheet.create({
   },
   balanceLabel: {
     color: "#DBEAFE",
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
     textTransform: "uppercase",
   },
-  balanceAmount: {
-    fontSize: 32,
-    fontWeight: "bold",
-    marginTop: 4,
-  },
+  balanceAmount: { fontSize: 30, fontWeight: "bold", marginTop: 4 },
   notificationBtn: {
-    backgroundColor: "rgba(255,255,255,0.2)",
+    backgroundColor: "rgba(255,255,255,0.15)",
     padding: 10,
-    borderRadius: 12,
+    borderRadius: 14,
   },
   statsRow: { flexDirection: "row", paddingHorizontal: 16, marginBottom: 24 },
   statBox: {
     flex: 1,
     backgroundColor: "#FFFFFF",
     padding: 16,
-    borderRadius: 20,
+    borderRadius: 22,
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
     borderColor: "#F1F5F9",
   },
   iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
+    marginRight: 10,
   },
-  statLabel: { fontSize: 12, color: "#64748B" },
-  statValue: { fontSize: 15, fontWeight: "700", color: "#1E293B" },
+  statLabel: { fontSize: 11, color: "#64748B", fontWeight: "600" },
+  statValue: { fontSize: 14, fontWeight: "700", color: "#1E293B" },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -306,13 +318,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginBottom: 16,
   },
-  sectionTitle: { fontSize: 18, fontWeight: "700", color: "#1E293B" },
+  sectionTitle: { fontSize: 18, fontWeight: "800", color: "#1E293B" },
   categoriesContainer: { paddingHorizontal: 16 },
   catCard: {
     backgroundColor: "#FFF",
     padding: 16,
     borderRadius: 20,
-    marginBottom: 8,
+    marginBottom: 10,
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
@@ -326,8 +338,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: 16,
   },
-  catLabel: { fontSize: 12, color: "#64748B" },
+  catLabel: { fontSize: 12, color: "#64748B", fontWeight: "500" },
   catAmount: { fontSize: 16, fontWeight: "700", color: "#1E293B" },
+  goalsListContainer: {
+    /* spacing */
+  },
   goalItem: {
     backgroundColor: "#FFF",
     marginHorizontal: 16,
@@ -342,7 +357,7 @@ const styles = StyleSheet.create({
   goalIconContainer: {
     width: 48,
     height: 48,
-    borderRadius: 12,
+    borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 16,
@@ -353,8 +368,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 8,
   },
-  goalNameText: { fontSize: 15, fontWeight: "600", color: "#1E293B" },
-  goalProgressText: { fontSize: 12, fontWeight: "700", color: "#10B981" },
+  goalNameText: { fontSize: 15, fontWeight: "700", color: "#1E293B" },
+  goalProgressText: { fontSize: 13, fontWeight: "800", color: "#10B981" },
   progressBarBg: {
     height: 8,
     backgroundColor: "#F1F5F9",
@@ -362,4 +377,20 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   progressBarFill: { height: "100%", borderRadius: 4 },
+  emptyCard: {
+    backgroundColor: "#FFFFFF",
+    padding: 30,
+    borderRadius: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderStyle: "dashed",
+  },
+  emptyText: {
+    fontSize: 14,
+    color: "#94A3B8",
+    marginTop: 10,
+    fontWeight: "600",
+  },
 });

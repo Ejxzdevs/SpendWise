@@ -11,6 +11,7 @@ import {
   Platform,
   Alert,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -26,6 +27,7 @@ const { width } = Dimensions.get("window");
 
 export default function GoalsScreen() {
   const [goals, setGoals] = useState<GoalItems[]>([]);
+  const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalAddMoneyVisible, setModalAddMoneyVisible] = useState(false);
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
@@ -70,6 +72,7 @@ export default function GoalsScreen() {
   // --- API HANDLERS ---
   const loadGoals = async () => {
     try {
+      setLoading(true);
       const response = await fetchGoals();
       if (response.success) {
         const sanitized = response.data.map((item: any) => ({
@@ -82,6 +85,8 @@ export default function GoalsScreen() {
       }
     } catch (error) {
       console.error("Error fetching goals:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -110,18 +115,6 @@ export default function GoalsScreen() {
     }
     if ((targetDate || "").length < 9) {
       setDateError("Enter valid date (MM / YYYY)");
-      valid = false;
-    }
-    if (description.length > 80) {
-      setDescError("Max 80 characters");
-      valid = false;
-    }
-    if (targetAmount && isNaN(Number(targetAmount))) {
-      setAmountError("Enter a valid number");
-      valid = false;
-    }
-    if (currentGoalAmount > Number(targetAmount)) {
-      setAmountError("Target cannot be less than current amount");
       valid = false;
     }
     return valid;
@@ -192,7 +185,6 @@ export default function GoalsScreen() {
 
     return (
       <View style={styles.card}>
-        {/* Main Content Area */}
         <View style={styles.cardPadding}>
           <View style={styles.cardTop}>
             <View style={styles.iconContainer}>
@@ -203,7 +195,7 @@ export default function GoalsScreen() {
                     : (item.icon_name as any) || "rocket"
                 }
                 size={22}
-                color={isCompleted ? "#10B981" : "#3B82F6"}
+                color={isCompleted ? "#10B981" : "#509893"}
               />
             </View>
             <View style={{ flex: 1 }}>
@@ -221,7 +213,7 @@ export default function GoalsScreen() {
                       { color: isCompleted ? "#065F46" : "#92400E" },
                     ]}
                   >
-                    {isCompleted ? "Completed" : "Incomplete"}
+                    {isCompleted ? "Completed" : "Active"}
                   </Text>
                 </View>
               </View>
@@ -246,7 +238,7 @@ export default function GoalsScreen() {
                 styles.progressBar,
                 {
                   width: `${progress}%`,
-                  backgroundColor: isCompleted ? "#10B981" : "#3B82F6",
+                  backgroundColor: isCompleted ? "#10B981" : "#509893",
                 },
               ]}
             />
@@ -265,7 +257,6 @@ export default function GoalsScreen() {
           </View>
         </View>
 
-        {/* --- IMPROVED FOOTER UI --- */}
         <View style={styles.footerActionRow}>
           {!isCompleted && (
             <Pressable
@@ -283,7 +274,6 @@ export default function GoalsScreen() {
               </Text>
             </Pressable>
           )}
-
           <Pressable
             style={[styles.footerButton, styles.borderRight]}
             onPress={() => {
@@ -305,14 +295,13 @@ export default function GoalsScreen() {
               Edit
             </Text>
           </Pressable>
-
           <Pressable
             style={styles.footerButton}
             onPress={() => {
-              Alert.alert("Delete", "Are you sure?", [
-                { text: "No" },
+              Alert.alert("Delete", "Remove this goal?", [
+                { text: "Cancel" },
                 {
-                  text: "Yes",
+                  text: "Delete",
                   onPress: () => deleteGoal(item.goal_id).then(loadGoals),
                 },
               ]);
@@ -330,53 +319,65 @@ export default function GoalsScreen() {
 
   return (
     <View style={styles.container}>
-      {goals.length > 0 && (
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryRow}>
-            <View>
-              <Text style={styles.summaryLabel}>Total Progress</Text>
-              <Text style={styles.summaryMainAmount}>
-                ₱{totals.current.toLocaleString()}
+      {/* TOTAL PROGRESS CARD - Always Visible Now */}
+      <View style={styles.summaryCard}>
+        <View style={styles.summaryRow}>
+          <View>
+            <Text style={styles.summaryLabel}>Total Progress</Text>
+            <Text style={styles.summaryMainAmount}>
+              ₱{totals.current.toLocaleString()}
+            </Text>
+          </View>
+          <Text style={styles.summaryPercentage}>
+            {Math.round(totals.progress)}%
+          </Text>
+        </View>
+        <View style={styles.summaryProgressTrack}>
+          <View
+            style={[
+              styles.summaryProgressBar,
+              { width: `${totals.progress}%` },
+            ]}
+          />
+        </View>
+        <View style={styles.summaryFooter}>
+          <Text style={styles.summaryFooterText}>
+            Combined Target: ₱{totals.target.toLocaleString()}
+          </Text>
+        </View>
+      </View>
+
+      {loading ? (
+        <ActivityIndicator
+          size="large"
+          color="#509893"
+          style={{ marginTop: 50 }}
+        />
+      ) : (
+        <FlatList
+          data={goals}
+          renderItem={renderGoal}
+          keyExtractor={(item) => item.goal_id}
+          contentContainerStyle={styles.list}
+          ListHeaderComponent={
+            <Text style={styles.sectionTitle}>Wishlist Goals</Text>
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name="gift-outline" size={50} color="#CBD5E1" />
+              <Text style={styles.emptyText}>
+                No goals found. Tap + to start saving!
               </Text>
             </View>
-            <Text style={styles.summaryPercentage}>
-              {Math.round(totals.progress)}%
-            </Text>
-          </View>
-          <div style={styles.summaryProgressTrack}>
-            <div
-              style={{
-                ...styles.summaryProgressBar,
-                width: `${totals.progress}%`,
-              }}
-            />
-          </div>
-          <View style={styles.summaryFooter}>
-            <Text style={styles.summaryFooterText}>
-              Target: ₱{totals.target.toLocaleString()}
-            </Text>
-          </View>
-        </View>
+          }
+        />
       )}
-
-      <FlatList
-        data={goals}
-        renderItem={renderGoal}
-        keyExtractor={(item) => item.goal_id}
-        contentContainerStyle={styles.list}
-        ListHeaderComponent={() => (
-          <Text style={styles.sectionTitle}>Wishlist Goals</Text>
-        )}
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>No goals found.</Text>
-        }
-      />
 
       <Pressable style={styles.fab} onPress={() => setModalVisible(true)}>
         <Ionicons name="add" size={32} color="#FFF" />
       </Pressable>
 
-      {/* MODALS REMAIN THE SAME... */}
+      {/* NEW GOAL MODAL */}
       <Modal transparent animationType="slide" visible={modalVisible}>
         <KeyboardAvoidingView
           behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -401,11 +402,12 @@ export default function GoalsScreen() {
                       setGoalName(t);
                       setNameError("");
                     }}
-                    placeholder="e.g. Travel"
+                    placeholder="e.g. New Laptop"
                   />
                   {nameError ? (
                     <Text style={styles.errorText}>{nameError}</Text>
                   ) : null}
+
                   <View style={styles.inputRow}>
                     <View style={{ flex: 1, marginRight: 8 }}>
                       <Text style={styles.inputLabel}>Target (₱)</Text>
@@ -431,30 +433,15 @@ export default function GoalsScreen() {
                       />
                     </View>
                   </View>
-                  {amountError ? (
-                    <Text style={styles.errorText}>{amountError}</Text>
-                  ) : null}
-                  {dateError ? (
-                    <Text style={styles.errorText}>{dateError}</Text>
-                  ) : null}
                   <Text style={styles.inputLabel}>Description</Text>
                   <TextInput
-                    style={[
-                      styles.inputDescription,
-                      descError && styles.inputError,
-                    ]}
+                    style={styles.inputDescription}
                     value={description}
-                    onChangeText={(t) => {
-                      setDescription(t);
-                      setDescError("");
-                    }}
+                    onChangeText={setDescription}
                     multiline
-                    placeholder="Optional..."
+                    placeholder="Why are you saving for this?"
                   />
-                  {descError ? (
-                    <Text style={styles.errorText}>{descError}</Text>
-                  ) : null}
-                  <Text style={styles.inputLabel}>Icon</Text>
+                  <Text style={styles.inputLabel}>Choose Icon</Text>
                 </>
               }
               renderItem={({ item }) => (
@@ -478,7 +465,9 @@ export default function GoalsScreen() {
                     <Text>Cancel</Text>
                   </Pressable>
                   <Pressable style={styles.btnPrimary} onPress={handleSaveGoal}>
-                    <Text style={{ color: "#FFF" }}>Save Goal</Text>
+                    <Text style={{ color: "#FFF", fontWeight: "700" }}>
+                      Save Goal
+                    </Text>
                   </Pressable>
                 </View>
               }
@@ -487,10 +476,17 @@ export default function GoalsScreen() {
         </KeyboardAvoidingView>
       </Modal>
 
-      <Modal transparent visible={modalAddMoneyVisible}>
+      {/* ADD MONEY MODAL */}
+      <Modal transparent visible={modalAddMoneyVisible} animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
+          <View
+            style={[
+              styles.modalContainer,
+              { borderTopLeftRadius: 32, borderTopRightRadius: 32 },
+            ]}
+          >
             <Text style={styles.modalTitle}>Add Savings</Text>
+            <Text style={styles.inputLabel}>Amount to add (₱)</Text>
             <TextInput
               style={[styles.input, addMoneyError && styles.inputError]}
               value={addAmount}
@@ -500,6 +496,7 @@ export default function GoalsScreen() {
               }}
               placeholder="0.00"
               keyboardType="numeric"
+              autoFocus
             />
             {addMoneyError ? (
               <Text style={styles.errorText}>{addMoneyError}</Text>
@@ -515,7 +512,9 @@ export default function GoalsScreen() {
                 <Text>Cancel</Text>
               </Pressable>
               <Pressable style={styles.btnPrimary} onPress={handleSaveAddMoney}>
-                <Text style={{ color: "#FFF" }}>Save</Text>
+                <Text style={{ color: "#FFF", fontWeight: "700" }}>
+                  Confirm
+                </Text>
               </Pressable>
             </View>
           </View>
@@ -526,12 +525,17 @@ export default function GoalsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FBFDFF" },
+  container: { flex: 1, backgroundColor: "#F8FAFC" },
   summaryCard: {
-    backgroundColor: "#0F172A",
+    backgroundColor: "#1E293B",
     margin: 20,
-    padding: 20,
-    borderRadius: 24,
+    padding: 24,
+    borderRadius: 28,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
+    elevation: 8,
   },
   summaryRow: {
     flexDirection: "row",
@@ -539,38 +543,50 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   summaryLabel: {
-    color: "#DBEAFE",
-    fontSize: 14,
-    fontWeight: "600",
+    color: "#94A3B8",
+    fontSize: 12,
+    fontWeight: "700",
     textTransform: "uppercase",
+    letterSpacing: 1,
   },
-  summaryMainAmount: { color: "#FFF", fontSize: 26, fontWeight: "800" },
-  summaryPercentage: { color: "#10B981", fontSize: 22, fontWeight: "800" },
+  summaryMainAmount: {
+    color: "#FFF",
+    fontSize: 28,
+    fontWeight: "800",
+    marginTop: 4,
+  },
+  summaryPercentage: { color: "#10B981", fontSize: 24, fontWeight: "800" },
   summaryProgressTrack: {
     height: 10,
     backgroundColor: "#334155",
     borderRadius: 5,
-    marginTop: 15,
+    marginTop: 18,
   },
   summaryProgressBar: {
     height: "100%",
     backgroundColor: "#10B981",
     borderRadius: 5,
   },
-  summaryFooter: { marginTop: 12 },
-  summaryFooterText: { color: "#fff" },
-  list: { paddingHorizontal: 20, paddingBottom: 100 },
+  summaryFooter: { marginTop: 14 },
+  summaryFooterText: { color: "#94A3B8", fontSize: 13 },
+
+  list: { paddingHorizontal: 20, paddingBottom: 120 },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: 20,
+    fontWeight: "800",
     color: "#1E293B",
     marginBottom: 16,
+    marginTop: 10,
   },
 
   card: {
     backgroundColor: "#FFF",
     borderRadius: 24,
     marginBottom: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
     elevation: 3,
     overflow: "hidden",
     borderWidth: 1,
@@ -579,51 +595,63 @@ const styles = StyleSheet.create({
   cardPadding: { padding: 20 },
   cardTop: { flexDirection: "row", alignItems: "center" },
   iconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
+    width: 48,
+    height: 48,
+    borderRadius: 16,
     backgroundColor: "#F1F5F9",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
   },
-  goalName: { fontSize: 18, fontWeight: "700" },
-  goalTarget: { fontSize: 13, color: "#94A3B8" },
-  percentageText: { fontSize: 16, fontWeight: "800", color: "#10B981" },
+  goalName: { fontSize: 17, fontWeight: "700", color: "#1E293B" },
+  goalTarget: { fontSize: 13, color: "#64748B", marginTop: 2 },
+  percentageText: { fontSize: 16, fontWeight: "800", color: "#509893" },
   progressTrack: {
     height: 8,
     backgroundColor: "#F1F5F9",
     borderRadius: 4,
-    marginTop: 14,
+    marginTop: 16,
   },
   progressBar: { height: "100%", borderRadius: 4 },
   cardBottom: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 14,
+    marginTop: 16,
+    alignItems: "center",
   },
-  currentAmount: { fontSize: 18, fontWeight: "700" },
+  currentAmount: { fontSize: 18, fontWeight: "800", color: "#1E293B" },
   dateBadge: {
     flexDirection: "row",
     backgroundColor: "#F8FAFC",
-    padding: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 8,
+    alignItems: "center",
   },
-  dateText: { fontSize: 12, marginLeft: 4 },
+  dateText: {
+    fontSize: 11,
+    marginLeft: 4,
+    color: "#64748B",
+    fontWeight: "600",
+  },
   statusBadge: {
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 6,
     marginLeft: 8,
   },
-  statusText: { fontSize: 9, fontWeight: "bold" },
-  descriptionContainer: { marginTop: 8 },
-  descriptionText: { fontSize: 13, color: "#475569" },
+  statusText: { fontSize: 10, fontWeight: "800", textTransform: "uppercase" },
+  descriptionContainer: {
+    marginTop: 10,
+    backgroundColor: "#F8FAFC",
+    padding: 8,
+    borderRadius: 8,
+  },
+  descriptionText: { fontSize: 13, color: "#475569", fontStyle: "italic" },
 
-  // NEW FOOTER STYLES
   footerActionRow: {
     flexDirection: "row",
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#FDFDFD",
     borderTopWidth: 1,
     borderTopColor: "#F1F5F9",
   },
@@ -632,7 +660,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 12,
+    paddingVertical: 14,
     gap: 6,
   },
   footerButtonText: { fontSize: 13, fontWeight: "700" },
@@ -642,16 +670,22 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 24,
     bottom: 34,
-    width: 60,
-    height: 60,
-    borderRadius: 20,
-    backgroundColor: "#0F172A",
+    width: 64,
+    height: 64,
+    borderRadius: 22,
+    backgroundColor: "#1E293B",
     justifyContent: "center",
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
+
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(15, 23, 42, 0.5)",
     justifyContent: "flex-end",
   },
   modalContainer: {
@@ -671,58 +705,73 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 22,
-    fontWeight: "700",
+    fontWeight: "800",
     textAlign: "center",
     marginBottom: 20,
+    color: "#1E293B",
   },
-  inputLabel: { fontWeight: "700", marginBottom: 5, marginTop: 10 },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#475569",
+    marginBottom: 8,
+    marginTop: 12,
+  },
   input: {
     backgroundColor: "#F8FAFC",
     borderRadius: 12,
-    padding: 12,
+    padding: 14,
     borderWidth: 1,
     borderColor: "#E2E8F0",
+    color: "#1E293B",
   },
   inputError: { borderColor: "#EF4444" },
-  errorText: { color: "#EF4444", fontSize: 12, marginTop: 4 },
+  errorText: { color: "#EF4444", fontSize: 12, marginTop: 4, marginLeft: 4 },
   inputDescription: {
     backgroundColor: "#F8FAFC",
     borderRadius: 12,
-    padding: 12,
-    height: 80,
+    padding: 14,
+    height: 100,
     textAlignVertical: "top",
     borderWidth: 1,
     borderColor: "#E2E8F0",
   },
   inputRow: { flexDirection: "row" },
   iconOption: {
-    width: 45,
-    height: 45,
+    width: (width - 88) / 5,
+    height: 50,
     borderRadius: 12,
     backgroundColor: "#F8FAFC",
     justifyContent: "center",
     alignItems: "center",
-    margin: 5,
+    margin: 4,
   },
   iconSelected: {
     backgroundColor: "#ECFDF5",
     borderWidth: 1,
     borderColor: "#10B981",
   },
-  buttonRow: { flexDirection: "row", marginTop: 25, gap: 10, marginBottom: 20 },
+  buttonRow: { flexDirection: "row", marginTop: 30, gap: 12, marginBottom: 20 },
   btnPrimary: {
     flex: 2,
-    backgroundColor: "#10B981",
-    padding: 15,
-    borderRadius: 12,
+    backgroundColor: "#509893",
+    padding: 16,
+    borderRadius: 16,
     alignItems: "center",
   },
   btnSecondary: {
     flex: 1,
     backgroundColor: "#F1F5F9",
-    padding: 15,
-    borderRadius: 12,
+    padding: 16,
+    borderRadius: 16,
     alignItems: "center",
   },
-  emptyText: { textAlign: "center", marginTop: 50, color: "#94A3B8" },
+  emptyContainer: { alignItems: "center", marginTop: 60 },
+  emptyText: {
+    textAlign: "center",
+    color: "#94A3B8",
+    marginTop: 12,
+    fontSize: 15,
+    fontWeight: "500",
+  },
 });

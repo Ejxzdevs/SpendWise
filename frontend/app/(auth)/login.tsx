@@ -88,9 +88,6 @@ export default function Login() {
           <View style={styles.inputContainer}>
             <View style={styles.labelRow}>
               <Text style={styles.label}>Password</Text>
-              <TouchableOpacity>
-                <Text style={styles.forgotText}>Forgot?</Text>
-              </TouchableOpacity>
             </View>
             <TextInput
               placeholder="••••••••"
@@ -156,7 +153,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
-    // Soft shadow for the logo
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,

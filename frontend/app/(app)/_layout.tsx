@@ -104,7 +104,23 @@ export default function AppLayout() {
         drawerActiveTintColor: "#10B981",
         drawerInactiveTintColor: "#64748B",
         drawerType: "slide",
-        headerTitle: "SpendWise",
+        headerTitle: () => (
+          <View style={styles.headerContainer}>
+            {/* Bars */}
+            <View style={styles.bars}>
+              <View style={[styles.bar, { height: 8 }]} />
+              <View style={[styles.bar, { height: 14 }]} />
+              <View style={[styles.bar, { height: 20 }]} />
+              <View style={[styles.bar, { height: 26 }]} />
+            </View>
+
+            {/* Brand text */}
+            <Text style={styles.brandText}>
+              Spend<Text style={styles.brandTextBold}>Wise</Text>
+            </Text>
+          </View>
+        ),
+
         headerTitleStyle: {
           fontWeight: "bold",
         },
@@ -162,5 +178,33 @@ const styles = StyleSheet.create({
   drawerLabel: {
     fontSize: 16,
     marginLeft: 3,
+  },
+  headerContainer: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+  },
+
+  bars: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    marginRight: 6,
+  },
+
+  bar: {
+    width: 4,
+    backgroundColor: "#2ec4b6",
+    marginRight: 3,
+    borderRadius: 2,
+  },
+
+  brandText: {
+    fontSize: 20,
+    fontWeight: "500",
+    color: "#eef0f3",
+  },
+
+  brandTextBold: {
+    fontWeight: "800",
+    color: "#2ec4b6",
   },
 });
