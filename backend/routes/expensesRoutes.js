@@ -5,7 +5,8 @@ import { authenticateUser } from "../middleware/authmiddleware.js"; // all lower
 const router = Router();
 
 // List of expense routes
-router.post("/create", authenticateUser, ExpenseController.createExpense);
-router.get("/products", authenticateUser, ExpenseController.getAllExpenses);
+router.post("/", authenticateUser, ExpenseController.createExpense);
+router.get("/", authenticateUser, ExpenseController.getAllExpenses);
+router.delete("/:id", authenticateUser, ExpenseController.deleteExpense);
 
 export default router;
