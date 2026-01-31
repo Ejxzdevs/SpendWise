@@ -1,35 +1,24 @@
-import React, { useEffect, useState, useContext } from "react";
-import { View, Text, StyleSheet, Platform, Alert } from "react-native";
-// 1. Ensure these imports are exactly like this
+import React, { useContext } from "react";
+import { View, Text, StyleSheet, Platform } from "react-native";
 import { Drawer } from "expo-router/drawer";
 import { DrawerContentScrollView, DrawerItem } from "@react-navigation/drawer";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { getUserInfo } from "@/utils/authStorage";
 import { AuthContext } from "@/context/authContext";
+import { useAuthUser } from "@/hooks/use-auth-user";
 
 function CustomDrawerContent(props: any) {
   const router = useRouter();
-  const [user, setUser] = useState<{ username: string }>({ username: "Guest" });
+  const { user, loading } = useAuthUser();
   const { logout } = useContext(AuthContext);
 
-  useEffect(() => {
-    const fetchUserInfo = async () => {
-      const userInfo = await getUserInfo();
-      if (userInfo) {
-        try {
-          setUser(JSON.parse(userInfo));
-        } catch (e) {
-          console.error("Failed to parse user info");
-        }
-      }
-    };
-    fetchUserInfo();
-  }, []);
+  // Prevent render until user is resolved
+  if (loading) {
+    return null;
+  }
 
-  const handleLogout = () => {
-    logout();
-  };
+  const username = user?.username ?? "Guest";
+  const avatarLetter = username.charAt(0).toUpperCase();
 
   return (
     <View style={{ flex: 1 }}>
@@ -40,66 +29,59 @@ function CustomDrawerContent(props: any) {
         {/* Profile Header */}
         <View style={styles.header}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
-              {user.username ? user.username.charAt(0).toUpperCase() : "U"}
-            </Text>
+            <Text style={styles.avatarText}>{avatarLetter}</Text>
           </View>
+
           <View style={styles.userInfo}>
-            <Text style={styles.username}>{user.username}</Text>
+            <Text style={styles.username}>{username}</Text>
             <Text style={styles.userSub}>Personal Account</Text>
           </View>
         </View>
 
         {/* Navigation Items */}
-        <View style={(styles.drawerItems, { padding: 0 })}>
+        <View style={styles.drawerItems}>
           <DrawerItem
             label="Dashboard"
-            inactiveTintColor="#64748B"
-            activeTintColor="#10B981"
             icon={({ color, size }) => (
               <Ionicons name="grid-outline" size={size} color={color} />
             )}
             onPress={() => router.push("/")}
             labelStyle={styles.drawerLabel}
           />
+
           <DrawerItem
             label="Income"
-            inactiveTintColor="#64748B"
-            activeTintColor="#10B981"
             icon={({ color, size }) => (
               <Ionicons name="wallet-outline" size={size} color={color} />
             )}
             onPress={() => router.push("/income")}
             labelStyle={styles.drawerLabel}
           />
+
           <DrawerItem
             label="Expenses"
-            inactiveTintColor="#64748B"
-            activeTintColor="#10B981"
             icon={({ color, size }) => (
               <Ionicons name="receipt-outline" size={size} color={color} />
             )}
             onPress={() => router.push("/expense")}
             labelStyle={styles.drawerLabel}
           />
+
           <DrawerItem
             label="Savings Goals"
-            inactiveTintColor="#64748B"
-            activeTintColor="#10B981"
             icon={({ color, size }) => (
               <Ionicons name="trophy-outline" size={size} color={color} />
             )}
             onPress={() => router.push("/wishlist")}
             labelStyle={styles.drawerLabel}
           />
+
           <DrawerItem
             label="Logout"
-            inactiveTintColor="#64748B"
-            activeTintColor="#10B981"
             icon={({ color, size }) => (
               <Ionicons name="log-out-outline" size={size} color={color} />
             )}
-            onPress={() => handleLogout()}
+            onPress={logout}
             labelStyle={styles.drawerLabel}
           />
         </View>
@@ -124,12 +106,10 @@ export default function AppLayout() {
         drawerType: "slide",
         headerTitle: "SpendWise",
         headerTitleStyle: {
-          color: "#ffffff",
           fontWeight: "bold",
         },
       }}
     >
-      {/* Ensure the name matches your file structure */}
       <Drawer.Screen
         name="(tabs)"
         options={{
