@@ -14,53 +14,92 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
-import { saveIncome, fetchIncomes } from "@/services/incomeServices";
+import {
+  saveIncome,
+  fetchIncomes,
+  deleteIncome,
+} from "@/services/incomeServices";
 import { IncomeItem } from "@/types/income";
 import { incomeCategoryIcons } from "@/types/category";
+
+const MAX_DESC_LENGTH = 80;
 
 export default function IncomeTabScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [source, setSource] = useState("");
+  const [sourceError, setSourceError] = useState("");
   const [amount, setAmount] = useState("");
+  const [amountError, setAmountError] = useState("");
   const [description, setDescription] = useState("");
   const [incomes, setIncomes] = useState<IncomeItem[]>([]);
 
-  // Fetch incomes on mount
   useEffect(() => {
-    const loadIncomes = async () => {
-      try {
-        const response = await fetchIncomes();
-        setIncomes(response.data);
-      } catch (error) {
-        console.error("Error fetching incomes:", error);
-      }
-    };
     loadIncomes();
   }, []);
 
-  // Calculate total income
+  const loadIncomes = async () => {
+    try {
+      const response = await fetchIncomes();
+      setIncomes(response.data);
+    } catch (error) {
+      console.error("Error fetching incomes:", error);
+    }
+  };
+
   const totalIncome = useMemo(() => {
     return incomes.reduce((sum, income) => sum + Number(income.amount), 0);
   }, [incomes]);
 
-  // Save new income
-  const handleSaveIncome = async () => {
-    if (!source || !amount) {
-      Alert.alert("Error", "Please select a source and enter amount.");
-      return;
-    }
+  // Delete income handler
+  const handleDelete = async (id: string) => {
+    Alert.alert(
+      "Delete Income",
+      "Are you sure you want to remove this record?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteIncome(id);
+              await loadIncomes();
+            } catch (error) {
+              Alert.alert("Error", "Could not delete item.");
+            }
+          },
+        },
+      ],
+    );
+  };
 
-    const payload = {
-      source,
-      amount: parseFloat(amount),
-      description,
-    };
+  const formValidation = () => {
+    let valid = true;
+    if (!source) {
+      setSourceError("Please select a source.");
+      valid = false;
+    } else {
+      setSourceError("");
+    }
+    if (!amount) {
+      setAmountError("Please enter an amount.");
+      valid = false;
+    } else if (!/^-?\d+(\.\d+)?$/.test(amount)) {
+      setAmountError("Please enter a valid number.");
+      valid = false;
+    } else {
+      setAmountError("");
+    }
+    return valid;
+  };
+
+  const handleSaveIncome = async () => {
+    if (!formValidation()) return;
+    if (description.length > MAX_DESC_LENGTH) return;
 
     try {
-      await saveIncome(payload);
-      const response = await fetchIncomes();
-      setIncomes(response.data);
-      Alert.alert("Success", "Income saved successfully");
+      await saveIncome({ source, amount: parseFloat(amount), description });
+      await loadIncomes();
       closeModal();
     } catch (error) {
       console.error("Error saving income:", error);
@@ -71,42 +110,53 @@ export default function IncomeTabScreen() {
     setSource("");
     setAmount("");
     setDescription("");
+    setSourceError("");
+    setAmountError("");
     setModalVisible(false);
   };
 
-  // Render income list item
   const renderIncomeItem = ({ item }: { item: IncomeItem }) => (
     <View style={styles.card}>
-      <View style={styles.cardIconContainer}>
-        {item.source && incomeCategoryIcons[item.source] && (
+      {/* Top Section: Icon and Details */}
+      <View style={styles.cardMainContent}>
+        <View style={styles.cardIconContainer}>
           <Ionicons
-            name={incomeCategoryIcons[item.source] ?? "cash-outline"}
+            name={(incomeCategoryIcons[item.source] as any) ?? "cash-outline"}
             size={24}
             color="#2563EB"
           />
-        )}
-      </View>
-      <View style={styles.cardContent}>
-        <View style={styles.cardRow}>
-          <Text style={styles.sourceText}>{item.source}</Text>
-          <Text style={styles.amountText}>
-            +₱{Number(item.amount).toLocaleString()}
+        </View>
+        <View style={styles.cardTextContainer}>
+          <View style={styles.cardRow}>
+            <Text style={styles.sourceText}>{item.source}</Text>
+            <Text style={styles.amountText}>
+              +₱{Number(item.amount).toLocaleString()}
+            </Text>
+          </View>
+          <Text style={styles.descriptionText} numberOfLines={2}>
+            {item.description || "No description provided."}
           </Text>
         </View>
-        <Text style={styles.descriptionText}>{item.description}</Text>
       </View>
+
+      {/* FOOTER SECTION: Delete Button */}
+      <Pressable
+        style={styles.cardFooter}
+        onPress={() => handleDelete(item.source_id)}
+      >
+        <Ionicons name="trash-outline" size={16} color="#EF4444" />
+        <Text style={styles.deleteBtnText}>Delete Record</Text>
+      </Pressable>
     </View>
   );
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.headerCard}>
         <Text style={styles.headerLabel}>Total Revenue</Text>
         <Text style={styles.headerAmount}>₱{totalIncome.toLocaleString()}</Text>
       </View>
 
-      {/* Income List */}
       <FlatList
         data={incomes}
         renderItem={renderIncomeItem}
@@ -115,14 +165,15 @@ export default function IncomeTabScreen() {
         ListHeaderComponent={
           <Text style={styles.sectionTitle}>Income History</Text>
         }
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>No income sources found.</Text>
+        }
       />
 
-      {/* FAB */}
       <Pressable style={styles.fab} onPress={() => setModalVisible(true)}>
         <Ionicons name="add" size={30} color="#fff" />
       </Pressable>
 
-      {/* Add Income Modal */}
       <Modal
         animationType="slide"
         transparent
@@ -138,17 +189,15 @@ export default function IncomeTabScreen() {
             <ScrollView showsVerticalScrollIndicator={false}>
               <Text style={styles.modalTitle}>Add Income</Text>
 
-              {/* Dynamic Icon */}
-              {source ? (
+              {source && (
                 <Ionicons
-                  name={incomeCategoryIcons[source]}
+                  name={incomeCategoryIcons[source] as any}
                   size={48}
                   color="#2563EB"
                   style={{ alignSelf: "center", marginBottom: 12 }}
                 />
-              ) : null}
+              )}
 
-              {/* Source Picker */}
               <Text style={styles.label}>Source</Text>
               <View style={styles.pickerContainer}>
                 <Picker
@@ -164,30 +213,47 @@ export default function IncomeTabScreen() {
                   <Picker.Item label="Other" value="Other" />
                 </Picker>
               </View>
+              {sourceError ? (
+                <Text style={styles.errorMessage}>{sourceError}</Text>
+              ) : null}
 
-              {/* Amount */}
               <Text style={styles.label}>Amount</Text>
               <TextInput
                 style={styles.input}
                 placeholder="0.00"
-                placeholderTextColor="#94A3B8"
                 value={amount}
                 onChangeText={setAmount}
                 keyboardType="decimal-pad"
               />
+              {amountError ? (
+                <Text style={styles.errorMessage}>{amountError}</Text>
+              ) : null}
 
-              {/* Description */}
-              <Text style={styles.label}>Description</Text>
+              <View style={styles.labelRow}>
+                <Text style={styles.label}>Description</Text>
+                <Text
+                  style={[
+                    styles.charCount,
+                    description.length > MAX_DESC_LENGTH && {
+                      color: "#EF4444",
+                    },
+                  ]}
+                >
+                  {description.length}/{MAX_DESC_LENGTH}
+                </Text>
+              </View>
               <TextInput
-                style={[styles.input, styles.textArea]}
+                style={[
+                  styles.input,
+                  styles.textArea,
+                  description.length > MAX_DESC_LENGTH && styles.inputError,
+                ]}
                 placeholder="Where did this come from?"
-                placeholderTextColor="#94A3B8"
                 value={description}
                 onChangeText={setDescription}
                 multiline
               />
 
-              {/* Buttons */}
               <View style={styles.buttonRow}>
                 <Pressable
                   style={[styles.btn, styles.btnSecondary]}
@@ -196,8 +262,13 @@ export default function IncomeTabScreen() {
                   <Text style={styles.btnTextSecondary}>Cancel</Text>
                 </Pressable>
                 <Pressable
-                  style={[styles.btn, styles.btnPrimary]}
+                  style={[
+                    styles.btn,
+                    styles.btnPrimary,
+                    description.length > MAX_DESC_LENGTH && styles.btnDisabled,
+                  ]}
                   onPress={handleSaveIncome}
+                  disabled={description.length > MAX_DESC_LENGTH}
                 >
                   <Text style={styles.btnTextPrimary}>Save Income</Text>
                 </Pressable>
@@ -210,11 +281,10 @@ export default function IncomeTabScreen() {
   );
 }
 
-// ------------------- Styles -------------------
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F8FAFC" },
   headerCard: {
-    backgroundColor: "#2563EB",
+    backgroundColor: "#0F172A",
     margin: 16,
     padding: 24,
     borderRadius: 20,
@@ -238,15 +308,20 @@ const styles = StyleSheet.create({
     color: "#1E293B",
     marginBottom: 16,
   },
+
+  // Card Styling
   card: {
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
-    padding: 16,
     marginBottom: 12,
-    flexDirection: "row",
-    alignItems: "center",
     borderWidth: 1,
     borderColor: "#F1F5F9",
+    overflow: "hidden",
+  },
+  cardMainContent: {
+    flexDirection: "row",
+    padding: 16,
+    alignItems: "center",
   },
   cardIconContainer: {
     width: 48,
@@ -257,11 +332,29 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginRight: 16,
   },
-  cardContent: { flex: 1 },
+  cardTextContainer: { flex: 1 },
   cardRow: { flexDirection: "row", justifyContent: "space-between" },
   sourceText: { fontSize: 16, fontWeight: "600", color: "#1E293B" },
   amountText: { fontSize: 16, fontWeight: "700", color: "#059669" },
   descriptionText: { fontSize: 14, color: "#64748B", marginTop: 2 },
+
+  // Footer Delete Button
+  cardFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    backgroundColor: "#FFF5F5",
+    borderTopWidth: 1,
+    borderTopColor: "#FEE2E2",
+  },
+  deleteBtnText: {
+    color: "#EF4444",
+    fontSize: 12,
+    fontWeight: "600",
+    marginLeft: 6,
+  },
+
   fab: {
     position: "absolute",
     right: 20,
@@ -300,13 +393,14 @@ const styles = StyleSheet.create({
     color: "#1E293B",
     marginBottom: 20,
   },
-  label: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#475569",
-    marginBottom: 8,
+  labelRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginTop: 16,
   },
+  label: { fontSize: 14, fontWeight: "600", color: "#475569", marginBottom: 8 },
+  charCount: { fontSize: 12, color: "#94A3B8" },
   input: {
     backgroundColor: "#F8FAFC",
     borderWidth: 1,
@@ -315,6 +409,7 @@ const styles = StyleSheet.create({
     padding: 14,
     fontSize: 16,
   },
+  inputError: { borderColor: "#EF4444" },
   textArea: { height: 80, textAlignVertical: "top" },
   pickerContainer: {
     backgroundColor: "#F8FAFC",
@@ -327,6 +422,9 @@ const styles = StyleSheet.create({
   btn: { flex: 1, paddingVertical: 16, borderRadius: 12, alignItems: "center" },
   btnPrimary: { backgroundColor: "#2563EB" },
   btnSecondary: { backgroundColor: "#F1F5F9" },
+  btnDisabled: { backgroundColor: "#94A3B8" },
   btnTextPrimary: { color: "#FFFFFF", fontWeight: "700" },
   btnTextSecondary: { color: "#64748B", fontWeight: "700" },
+  emptyText: { textAlign: "center", marginTop: 50, color: "#94A3B8" },
+  errorMessage: { color: "#EF4444", marginTop: 4 },
 });
