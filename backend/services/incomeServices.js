@@ -27,6 +27,14 @@ class incomeServices {
     await redisClient.setEx(`incomes:${userId}`, 300, JSON.stringify(incomes));
     return incomes;
   }
+
+  static async deleteIncome({ userId, source_id }) {
+    // Delete income from DB
+    await IncomesModel.deleteIncome(source_id);
+    // Invalidate Redis cache
+    await redisClient.del(`incomes:${userId}`);
+    return;
+  }
 }
 
 export default incomeServices;
