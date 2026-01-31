@@ -33,7 +33,7 @@ function CustomDrawerContent(props: any) {
           </View>
 
           <View style={styles.userInfo}>
-            <Text style={styles.username}>{username}</Text>
+            <Text style={styles.username}>{username.toLocaleUpperCase()}</Text>
             <Text style={styles.userSub}>Personal Account</Text>
           </View>
         </View>
@@ -96,7 +96,7 @@ export default function AppLayout() {
       drawerContent={(props) => <CustomDrawerContent {...props} />}
       screenOptions={{
         headerStyle: {
-          backgroundColor: "#10B981",
+          backgroundColor: "#0F172A",
           elevation: 0,
           shadowOpacity: 0,
         },
