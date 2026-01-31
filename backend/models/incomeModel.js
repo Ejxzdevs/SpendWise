@@ -29,6 +29,18 @@ class IncomeModel {
       throw new Error("Error fetching incomes");
     }
   }
+
+  // Delete income
+  static async deleteIncome(source_id) {
+    const sql = ` DELETE FROM incomes WHERE source_id = $1 `;
+    try {
+      await _query(sql, [source_id]);
+      return;
+    } catch (error) {
+      console.error(error);
+      throw new Error("Error deleting income");
+    }
+  }
 }
 
 export default IncomeModel;
