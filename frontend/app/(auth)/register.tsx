@@ -1,23 +1,28 @@
 import React, { useState } from "react";
+import { Image } from "expo-image";
 import {
   View,
   Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { Link } from "expo-router";
 import { register as registerService } from "@/services/authService";
 
 export default function Register() {
-  // State to handle inputs
-  const [username, setusername] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
+
   const handleRegister = async () => {
-    // validations
     if (!username || !password || !confirmPassword) {
       setError("All fields are required");
       return;
@@ -27,7 +32,9 @@ export default function Register() {
       return;
     }
 
-    // Call register service
+    setLoading(true);
+    setError(null);
+
     try {
       await registerService({
         username: username.trim(),
@@ -35,109 +42,259 @@ export default function Register() {
       });
       setSuccess(true);
       setConfirmPassword("");
-      setusername("");
+      setUsername("");
       setPassword("");
-      setError(null);
     } catch (error: any) {
       setError(error.message || "Registration failed");
-      return;
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Create an Account</Text>
-      <Text style={styles.subtitle}>Get started with SpendWise</Text>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.container}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Consistent Branding Header */}
+        <View style={styles.header}>
+          <View style={styles.logoCircle}>
+            <Image
+              source={require("@/assets/images/D.png")}
+              style={styles.logo}
+              contentFit="contain"
+            />
+          </View>
+          <Text style={styles.title}>Join SpendWise</Text>
+          <Text style={styles.subtitle}>
+            Start your journey to financial clarity
+          </Text>
+        </View>
 
-      <TextInput
-        placeholder="username"
-        style={styles.input}
-        value={username}
-        onChangeText={setusername}
-        autoCapitalize="none"
-      />
-      <TextInput
-        placeholder="Password"
-        style={styles.input}
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
-      <TextInput
-        placeholder="Confirm Password"
-        style={styles.input}
-        secureTextEntry
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-      />
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Create Account</Text>
 
-      {error && <Text style={styles.errorText}>{error}</Text>}
-      {success && (
-        <Text style={{ color: "green", marginBottom: 8 }}>
-          Registration successful! Please log in.
-        </Text>
-      )}
+          {/* Username Input */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Username</Text>
+            <TextInput
+              placeholder="Pick a unique username"
+              placeholderTextColor="#9ca3af"
+              style={styles.input}
+              value={username}
+              onChangeText={setUsername}
+              autoCapitalize="none"
+            />
+          </View>
 
-      <TouchableOpacity style={styles.button} onPress={handleRegister}>
-        <Text style={styles.buttonText}>Register</Text>
-      </TouchableOpacity>
+          {/* Password Input */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Password</Text>
+            <TextInput
+              placeholder="••••••••"
+              placeholderTextColor="#9ca3af"
+              style={styles.input}
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+            />
+          </View>
 
-      <Link href="/(auth)/login" style={styles.link}>
-        Already have an account? Login
-      </Link>
-    </View>
+          {/* Confirm Password Input */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Confirm Password</Text>
+            <TextInput
+              placeholder="••••••••"
+              placeholderTextColor="#9ca3af"
+              style={styles.input}
+              secureTextEntry
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+            />
+          </View>
+
+          {/* Status Messages */}
+          {error && (
+            <View style={[styles.statusBadge, styles.errorBadge]}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
+
+          {success && (
+            <View style={[styles.statusBadge, styles.successBadge]}>
+              <Text style={styles.successText}>
+                Account created! You can now log in.
+              </Text>
+            </View>
+          )}
+
+          <TouchableOpacity
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={handleRegister}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#ffffff" />
+            ) : (
+              <Text style={styles.buttonText}>Register</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        <Link href="/(auth)/login" asChild>
+          <TouchableOpacity style={styles.footerLink}>
+            <Text style={styles.footerText}>
+              Already have an account?{" "}
+              <Text style={styles.linkText}>Log In</Text>
+            </Text>
+          </TouchableOpacity>
+        </Link>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: "#F8FAFC",
+  },
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: "center",
     padding: 24,
-    backgroundColor: "#f3f4f6",
+    paddingTop: 60,
+  },
+  header: {
+    alignItems: "center",
+    marginBottom: 32,
+  },
+  logoCircle: {
+    width: 70,
+    height: 70,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 35,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  logo: {
+    width: 40,
+    height: 40,
   },
   title: {
-    fontSize: 32,
-    fontWeight: "bold",
-    marginBottom: 8,
-    textAlign: "center",
-    color: "#111827",
+    fontSize: 26,
+    fontWeight: "800",
+    color: "#1E293B",
+    letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: 16,
-    color: "#6b7280",
-    marginBottom: 24,
+    fontSize: 14,
+    color: "#64748B",
+    marginTop: 4,
     textAlign: "center",
   },
+  card: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.04,
+    shadowRadius: 16,
+    elevation: 4,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#334155",
+    marginBottom: 20,
+  },
+  inputContainer: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#475569",
+    marginBottom: 6,
+    marginLeft: 4,
+  },
   input: {
-    borderWidth: 1,
-    borderColor: "#d1d5db",
+    backgroundColor: "#F1F5F9",
     borderRadius: 12,
     padding: 14,
+    fontSize: 15,
+    color: "#1E293B",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  statusBadge: {
+    padding: 12,
+    borderRadius: 12,
     marginBottom: 16,
-    backgroundColor: "#fff",
+    borderWidth: 1,
+  },
+  errorBadge: {
+    backgroundColor: "#FFF1F2",
+    borderColor: "#FECDD3",
+  },
+  successBadge: {
+    backgroundColor: "#F0FDF4",
+    borderColor: "#BBF7D0",
+  },
+  errorText: {
+    color: "#E11D48",
+    fontSize: 13,
+    textAlign: "center",
+    fontWeight: "500",
+  },
+  successText: {
+    color: "#15803D",
+    fontSize: 13,
+    textAlign: "center",
+    fontWeight: "500",
   },
   button: {
     backgroundColor: "#509893",
     padding: 16,
-    borderRadius: 12,
+    borderRadius: 14,
     marginTop: 8,
+    shadowColor: "#509893",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  buttonDisabled: {
+    backgroundColor: "#94A3B8",
   },
   buttonText: {
-    color: "#fff",
+    color: "#ffffff",
     textAlign: "center",
-    fontWeight: "bold",
+    fontWeight: "700",
     fontSize: 16,
   },
-  link: {
-    marginTop: 16,
-    textAlign: "center",
-    color: "#4f46e5",
-    fontWeight: "500",
+  footerLink: {
+    marginTop: 24,
+    alignItems: "center",
+    marginBottom: 20,
   },
-  errorText: {
-    color: "red",
+  footerText: {
     fontSize: 14,
-    marginBottom: 8,
+    color: "#64748B",
+  },
+  linkText: {
+    color: "#509893",
+    fontWeight: "700",
   },
 });
