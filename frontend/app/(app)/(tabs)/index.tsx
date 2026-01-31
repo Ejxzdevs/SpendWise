@@ -54,7 +54,6 @@ export default function DashboardScreen() {
       const incomes = incomeRes?.data || [];
       const goals = goalRes?.data || [];
 
-      // 1. Calculate Totals with Number conversion to fix ₱NaN
       const totalIn = incomes.reduce(
         (sum: number, item: any) => sum + (Number(item.amount) || 0),
         0,
@@ -64,7 +63,7 @@ export default function DashboardScreen() {
         0,
       );
 
-      // 2. Group Expenses by Category & LIMIT TO 3
+      // Group Expenses by Category & LIMIT TO 3
       const categoriesMap = expenses.reduce((acc: any, curr: any) => {
         acc[curr.category] =
           (acc[curr.category] || 0) + (Number(curr.amount) || 0);
@@ -79,16 +78,16 @@ export default function DashboardScreen() {
             index % 5
           ],
         }))
-        .sort((a, b) => b.amount - a.amount) // Highest spending first
-        .slice(0, 3); // LIMIT TO 3
+        .sort((a, b) => b.amount - a.amount)
+        .slice(0, 3);
 
-      // 3. Sort Goals by MOST RECENT (created_at) & LIMIT TO 3
+      // Sort Goals by MOST RECENT (created_at) & LIMIT TO 3
       const recentGoals = goals
         .sort(
           (a: any, b: any) =>
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
         )
-        .slice(0, 3); // LIMIT TO 3
+        .slice(0, 3);
 
       setData({
         totalIncome: totalIn,
@@ -181,10 +180,7 @@ export default function DashboardScreen() {
 
       {/* 3. Category Spending (Limited to 3) */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Spending by Category</Text>
-        <Pressable>
-          <Text style={styles.seeAll}>See All</Text>
-        </Pressable>
+        <Text style={styles.sectionTitle}>Latest Transactions</Text>
       </View>
 
       <View style={styles.categoriesContainer}>
@@ -202,9 +198,6 @@ export default function DashboardScreen() {
       {/* 4. Financial Goals (Recent 3) */}
       <View style={[styles.sectionHeader, { marginTop: 24 }]}>
         <Text style={styles.sectionTitle}>Financial Goals</Text>
-        <Pressable>
-          <Text style={styles.seeAll}>Manage</Text>
-        </Pressable>
       </View>
 
       {data.goals.map((goal) => {
@@ -277,9 +270,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   balanceLabel: {
-    color: "rgba(255,255,255,0.8)",
+    color: "#DBEAFE",
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "600",
+    textTransform: "uppercase",
   },
   balanceAmount: {
     color: "#FFFFFF",
@@ -321,8 +315,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: { fontSize: 18, fontWeight: "700", color: "#1E293B" },
-  seeAll: { color: "#10B981", fontWeight: "600" },
-  categoriesContainer: { paddingHorizontal: 16 }, // Changed to vertical list for cleaner look if limiting to 3
+  categoriesContainer: { paddingHorizontal: 16 },
   catCard: {
     backgroundColor: "#FFF",
     padding: 16,

@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   headerLabel: {
-    color: "#A7F3D0",
+    color: "#DBEAFE",
     fontSize: 14,
     fontWeight: "600",
     textTransform: "uppercase",

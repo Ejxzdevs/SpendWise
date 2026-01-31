@@ -538,7 +538,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  summaryLabel: { color: "#94A3B8", fontSize: 14 },
+  summaryLabel: {
+    color: "#DBEAFE",
+    fontSize: 14,
+    fontWeight: "600",
+    textTransform: "uppercase",
+  },
   summaryMainAmount: { color: "#FFF", fontSize: 26, fontWeight: "800" },
   summaryPercentage: { color: "#10B981", fontSize: 22, fontWeight: "800" },
   summaryProgressTrack: {
@@ -553,7 +558,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   summaryFooter: { marginTop: 12 },
-  summaryFooterText: { color: "#94A3B8" },
+  summaryFooterText: { color: "#fff" },
   list: { paddingHorizontal: 20, paddingBottom: 100 },
   sectionTitle: {
     fontSize: 18,
