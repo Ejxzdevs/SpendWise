@@ -7,6 +7,6 @@ const router = Router();
 // List of expense routes
 router.post("/", authenticateUser, ExpenseController.createExpense);
 router.get("/", authenticateUser, ExpenseController.getAllExpenses);
-router.delete("/:id", authenticateUser, ExpenseController.deleteExpense);
+router.delete("/:id", authenticateUser, ExpenseController.deleteExpens);
 
 export default router;
