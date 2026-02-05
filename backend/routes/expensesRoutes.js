@@ -1,6 +1,6 @@
 import { Router } from "express";
 import ExpenseController from "../controllers/expensesController.js";
-import { authenticateUser } from "../middleware/authmiddleware.js"; // all lowercase
+import { authenticateUser } from "../middleware/authMiddleware.js"; // all lowercase
 
 const router = Router();
 
