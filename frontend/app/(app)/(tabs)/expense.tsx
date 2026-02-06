@@ -55,7 +55,6 @@ export default function ExpenseTabScreen() {
     return expenses.reduce((sum, item) => sum + Number(item.amount), 0);
   }, [expenses]);
 
-  // ✅ SAME VALIDATION AS INCOME
   const formValidation = () => {
     let valid = true;
 
