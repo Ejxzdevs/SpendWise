@@ -1,7 +1,8 @@
 {
   "expo": {
-    "name": "frontend",
-    "slug": "frontend",
+    "name": "Spenwise",
+    "slug": "Spenwise",
+    "icon": "./assets/images/D.png",
     "version": "1.0.0",
     "orientation": "portrait",
     "scheme": "frontend",
@@ -12,7 +13,8 @@
     },
     "android": {
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.ejpardillo.spendwise"
     },
     "web": {
       "output": "static"
@@ -21,6 +23,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "59bc5c21-cad1-4ba0-9a81-5535a2394615"
+      }
     }
   }
 }
