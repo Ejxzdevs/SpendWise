@@ -21,7 +21,7 @@ function CustomDrawerContent(props: any) {
   const avatarLetter = username.charAt(0).toUpperCase();
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, padding: 0, margin: 0 }}>
       <DrawerContentScrollView
         {...props}
         contentContainerStyle={{ padding: 0 }}
