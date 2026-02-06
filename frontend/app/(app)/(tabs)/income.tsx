@@ -416,7 +416,7 @@ const styles = StyleSheet.create({
     borderColor: "#E2E8F0",
     overflow: "hidden",
   },
-  picker: { height: 50, width: "100%" },
+  picker: { height: 50, width: "100%", color: "#000", backgroundColor: "#fff" },
   buttonRow: { flexDirection: "row", marginTop: 32, gap: 12 },
   btn: { flex: 1, paddingVertical: 16, borderRadius: 12, alignItems: "center" },
   btnPrimary: { backgroundColor: "#2563EB" },

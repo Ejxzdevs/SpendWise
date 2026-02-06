@@ -25,14 +25,13 @@ import {
 import { ExpenseItem } from "@/types/expense";
 import { expenseCategoryIcons } from "@/types/category";
 
-const MAX_DESC_LENGTH = 80;
-
 export default function ExpenseTabScreen() {
   const [modalVisible, setModalVisible] = useState(false);
 
   const [category, setCategory] = useState("");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
+  const MAX_DESC_LENGTH = 80;
 
   const [categoryError, setCategoryError] = useState("");
   const [amountError, setAmountError] = useState("");
@@ -128,7 +127,6 @@ export default function ExpenseTabScreen() {
     setModalVisible(false);
   };
 
-  // ✅ SAME CARD STRUCTURE AS INCOME
   const renderExpenseItem = ({ item }: { item: ExpenseItem }) => (
     <View style={styles.card}>
       {/* MAIN CONTENT */}
@@ -226,11 +224,7 @@ export default function ExpenseTabScreen() {
                   onValueChange={setCategory}
                   style={styles.picker}
                 >
-                  <Picker.Item
-                    label="Choose Category"
-                    value=""
-                    color="#94A3B8"
-                  />
+                  <Picker.Item label="Choose Category" value="" />
                   <Picker.Item label="Food" value="Food" />
                   <Picker.Item label="Transport" value="Transport" />
                   <Picker.Item label="Rent" value="Rent" />
@@ -443,7 +437,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#E2E8F0",
   },
-  picker: { height: 50, width: "100%" },
+  picker: { height: 50, width: "100%", color: "#000", backgroundColor: "#fff" },
   buttonRow: { flexDirection: "row", marginTop: 32, gap: 12 },
   btn: { flex: 1, paddingVertical: 16, borderRadius: 12 },
   btnPrimary: { backgroundColor: "#10B981" },
