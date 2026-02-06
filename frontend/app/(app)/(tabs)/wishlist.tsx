@@ -22,6 +22,8 @@ import {
   deleteGoal,
 } from "@/services/goalServices";
 import { iconOptions, IconName, GoalPayload, GoalItems } from "@/types/goal";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { format } from "date-fns";
 
 const { width } = Dimensions.get("window");
 
@@ -35,8 +37,9 @@ export default function GoalsScreen() {
   // --- FORM STATES ---
   const [goalName, setGoalName] = useState("");
   const [targetAmount, setTargetAmount] = useState("");
-  const [targetDate, setTargetDate] = useState("");
+  const [targetDate, setTargetDate] = useState(new Date());
   const [description, setDescription] = useState("");
+  const MAX_DESC_LENGTH = 80;
   const [selectedIcon, setSelectedIcon] = useState<IconName | null>(null);
 
   // --- ADD MONEY STATES ---
@@ -47,8 +50,6 @@ export default function GoalsScreen() {
   // --- INLINE ERROR STATES ---
   const [nameError, setNameError] = useState("");
   const [amountError, setAmountError] = useState("");
-  const [dateError, setDateError] = useState("");
-  const [descError, setDescError] = useState("");
   const [addMoneyError, setAddMoneyError] = useState("");
 
   // --- CALCULATIONS ---
@@ -94,27 +95,15 @@ export default function GoalsScreen() {
     loadGoals();
   }, []);
 
-  // --- UTILS ---
-  const handleDateChange = (text: string) => {
-    setDateError("");
-    let cleaned = (text || "").replace(/\D/g, "");
-    if (cleaned.length > 2)
-      cleaned = `${cleaned.slice(0, 2)} / ${cleaned.slice(2, 6)}`;
-    setTargetDate(cleaned);
-  };
-
   const validateGoalForm = () => {
+    const amountVal = parseFloat(targetAmount);
     let valid = true;
     if (!goalName?.trim()) {
       setNameError("Goal name is required");
       valid = false;
     }
-    if (!targetAmount || Number(targetAmount) <= 0) {
+    if (!targetAmount || amountVal <= 0 || isNaN(amountVal)) {
       setAmountError("Enter a valid target");
-      valid = false;
-    }
-    if ((targetDate || "").length < 9) {
-      setDateError("Enter valid date (MM / YYYY)");
       valid = false;
     }
     return valid;
@@ -124,24 +113,19 @@ export default function GoalsScreen() {
     setModalVisible(false);
     setGoalName("");
     setTargetAmount("");
-    setTargetDate("");
     setDescription("");
     setSelectedIcon(null);
     setSelectedGoalId(null);
     setNameError("");
     setAmountError("");
-    setDateError("");
-    setDescError("");
   };
 
   const handleSaveGoal = async () => {
     if (!validateGoalForm()) return;
-    const [month, year] = targetDate.split(" / ");
-    const formattedDate = `${year}-${month.padStart(2, "0")}-01`;
     const payload: GoalPayload = {
       goal_name: goalName,
       target_amount: parseFloat(targetAmount),
-      target_date: formattedDate,
+      target_date: targetDate.toISOString(),
       description: description || "",
       icon_name: selectedIcon ?? undefined,
     };
@@ -249,9 +233,7 @@ export default function GoalsScreen() {
             <View style={styles.dateBadge}>
               <Ionicons name="calendar-outline" size={12} color="#64748B" />
               <Text style={styles.dateText}>
-                {item.target_date
-                  ? new Date(item.target_date).toLocaleDateString()
-                  : "No Date"}
+                {format(new Date(item.target_date), "MM/dd/yyyy")}
               </Text>
             </View>
           </View>
@@ -280,10 +262,7 @@ export default function GoalsScreen() {
               setGoalName(item.goal_name || "");
               setTargetAmount((item.target_amount || 0).toString());
               setCurrentGoalAmount(Number(item.current_amount || 0));
-              const d = new Date(item.target_date);
-              setTargetDate(
-                `${(d.getMonth() + 1).toString().padStart(2, "0")} / ${d.getFullYear()}`,
-              );
+              setTargetDate(new Date(item.target_date));
               setDescription(item.description || "");
               setSelectedIcon(item.icon_name || null);
               setSelectedGoalId(item.goal_id);
@@ -421,26 +400,58 @@ export default function GoalsScreen() {
                         keyboardType="numeric"
                         placeholder="0.00"
                       />
+                      {amountError ? (
+                        <Text style={styles.errorText}> {amountError}</Text>
+                      ) : null}
                     </View>
+
                     <View style={{ flex: 1, marginLeft: 8 }}>
                       <Text style={styles.inputLabel}>Deadline</Text>
-                      <TextInput
-                        style={[styles.input, dateError && styles.inputError]}
-                        value={targetDate}
-                        onChangeText={handleDateChange}
-                        placeholder="MM / YYYY"
-                        maxLength={9}
-                      />
+
+                      {Platform.OS === "web" ? (
+                        <input
+                          type="date"
+                          value={targetDate.toISOString().split("T")[0]}
+                          style={styles.input}
+                          onChange={(e) =>
+                            setTargetDate(new Date(e.target.value))
+                          }
+                        />
+                      ) : (
+                        <DateTimePicker
+                          value={targetDate}
+                          style={styles.input}
+                          mode="date"
+                          display="default"
+                          onChange={(event, date) =>
+                            date && setTargetDate(date)
+                          }
+                        />
+                      )}
                     </View>
                   </View>
                   <Text style={styles.inputLabel}>Description</Text>
+                  <Text
+                    style={[
+                      styles.charCount,
+                      description.length > MAX_DESC_LENGTH && {
+                        color: "#EF4444",
+                      },
+                    ]}
+                  >
+                    {description.length}/{MAX_DESC_LENGTH}
+                  </Text>
                   <TextInput
-                    style={styles.inputDescription}
+                    style={[
+                      styles.inputDescription,
+                      description.length > MAX_DESC_LENGTH && styles.inputError,
+                    ]}
                     value={description}
                     onChangeText={setDescription}
                     multiline
                     placeholder="Why are you saving for this?"
                   />
+
                   <Text style={styles.inputLabel}>Choose Icon</Text>
                 </>
               }
@@ -464,7 +475,16 @@ export default function GoalsScreen() {
                   <Pressable style={styles.btnSecondary} onPress={closeModal}>
                     <Text>Cancel</Text>
                   </Pressable>
-                  <Pressable style={styles.btnPrimary} onPress={handleSaveGoal}>
+                  <Pressable
+                    style={[
+                      styles.btn,
+                      styles.btnPrimary,
+                      description.length > MAX_DESC_LENGTH &&
+                        styles.btnDisabled,
+                    ]}
+                    onPress={handleSaveGoal}
+                    disabled={description.length > MAX_DESC_LENGTH}
+                  >
                     <Text style={{ color: "#FFF", fontWeight: "700" }}>
                       Save Goal
                     </Text>
@@ -648,6 +668,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   descriptionText: { fontSize: 13, color: "#475569", fontStyle: "italic" },
+  charCount: { fontSize: 12, color: "#94A3B8" },
 
   footerActionRow: {
     flexDirection: "row",
@@ -752,6 +773,8 @@ const styles = StyleSheet.create({
     borderColor: "#10B981",
   },
   buttonRow: { flexDirection: "row", marginTop: 30, gap: 12, marginBottom: 20 },
+  btn: { flex: 1, paddingVertical: 16, borderRadius: 12 },
+  btnDisabled: { backgroundColor: "#94A3B8" },
   btnPrimary: {
     flex: 2,
     backgroundColor: "#509893",
